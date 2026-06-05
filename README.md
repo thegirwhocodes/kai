@@ -5,16 +5,17 @@ A smart, **adaptive** pomodoro agent with two channels that share one source of 
 1. **Web app** — a ticking timer dial, controls, task list, and a session ribbon. The agent's reasoning is shown inline ("Let's do 30 minutes — you tend to focus well at this hour").
 2. **Voice coach** — a conversational agent (Claude) you can talk to. It drives the exact same timer state via tool calls, so "pause" by voice == clicking Pause.
 
-> Scaffold built while the deep-research report is in flight. The adaptive numbers in `src/lib/adaptive.ts` are a transparent first pass and will be refined once the research lands.
+> Adaptive logic is grounded in a verified deep-research pass — see [`docs/RESEARCH.md`](docs/RESEARCH.md) (105 agents, 25 claims adversarially verified, 6 refuted).
 
-## What makes it "adaptive"
+## What makes it "adaptive" (and why)
 
-The engine in [`src/lib/adaptive.ts`](src/lib/adaptive.ts) decides each block's length from:
+The research's core finding: the validated win of Pomodoro-style timing is **predetermined structure + personalized length**, *not* the 25/5 interval — and rigid fixed intervals actually accelerate fatigue/motivation decline. So the engine in [`src/lib/adaptive.ts`](src/lib/adaptive.ts) decides each block from:
 
-- **Circadian energy** — gentle ±15% shaping by time of day (morning peak, post-lunch dip).
-- **Recent focus quality** — your 1–5 self-ratings after each block lengthen blocks when you're in flow, shorten them when focus is choppy.
-- **Streak** — long break after N focus blocks.
-- **Calendar fit** — never overruns an upcoming commitment (hook is in the context; calendar integration is TODO).
+- **Recent focus quality** (strongest signal) — your 1–5 self-ratings lengthen blocks when you're in flow (ride it, don't force a cutoff), shorten them when focus is choppy.
+- **Fatigue taper** — focus blocks gently shorten as your streak grows, to stay ahead of the fatigue curve rigid intervals create.
+- **Break length, protected** — breaks are never shrunk "for momentum" (longer breaks drive recovery); they *grow* when you're drained or deep into a streak.
+- **Circadian guess** — a gentle ±15% time-of-day nudge, explicitly a personalized guess your own ratings override (waking 90-min ultradian cycles were *refuted* in verification — no hard-coded 90-min blocks).
+- **Streak** — long break after N focus blocks. **Calendar fit** — never overruns an upcoming commitment (hook present; integration is TODO).
 
 Every decision carries a plain-English `rationale` the voice agent speaks and the UI shows.
 

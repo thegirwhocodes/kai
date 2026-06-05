@@ -1,7 +1,15 @@
-// The adaptive engine. This is a transparent, heuristic first pass — the
-// deep-research report will refine the specific numbers and may swap in a
-// learned model. Everything here is deliberately explainable so the voice
-// agent can say *why* it chose a block length.
+// The adaptive engine. Transparent + explainable so the voice agent can say
+// *why* it chose a block length.
+//
+// Grounded in docs/RESEARCH.md. Key evidence shaping this logic:
+//  - The validated win is PREDETERMINED structure + PERSONALIZED length, not a
+//    magic interval. We never hard-code 25/5 or 90-min as "optimal".
+//  - Break LENGTH drives recovery more than frequency, so we DON'T shrink
+//    breaks when focus is high (that was the rigid-Pomodoro anti-pattern).
+//  - Rigid fixed intervals accelerate fatigue/motivation decline, so we taper
+//    focus length and grow breaks as fatigue accumulates over a streak.
+//  - Circadian time-of-day shaping is a gentle PERSONALIZED GUESS, not settled
+//    science (waking ultradian/90-min cycles were refuted in verification).
 
 import type {
   AdaptiveContext,
@@ -24,9 +32,10 @@ function recentFocusScore(blocks: Block[], n = 3): number | null {
 }
 
 /**
- * Circadian multiplier — a rough proxy for energy by time of day.
- * Morning and late-morning are peak; the post-lunch dip (~13–15h) and
- * late evening get shorter blocks. Values intentionally gentle (±15%).
+ * Circadian multiplier — a gentle PERSONALIZED GUESS at energy by time of day,
+ * not settled science. Morning/late-morning lean longer; the post-lunch dip
+ * (~13–15h) and late evening lean shorter. Intentionally small (±15%) and the
+ * first thing a user's own focus ratings should override.
  */
 function circadianFactor(hour: number): number {
   if (hour >= 9 && hour < 12) return 1.15; // morning peak
@@ -59,13 +68,14 @@ export function decideFocusBlock(
   let sec = ctx.baselineFocusSec;
   const reasons: string[] = [];
 
-  // 1) Circadian shaping.
+  // 1) Circadian shaping — a gentle personalized guess, easily overridden.
   const circ = circadianFactor(ctx.hourOfDay);
   sec *= circ;
-  if (circ > 1.05) reasons.push("you tend to focus well at this hour");
-  else if (circ < 0.95) reasons.push("energy usually dips around now");
+  if (circ > 1.05) reasons.push("you usually have good energy around now");
+  else if (circ < 0.95) reasons.push("energy tends to dip around now");
 
-  // 2) Recent focus quality — lengthen when you're in the zone, shorten
+  // 2) Recent focus quality — the strongest personal signal. Lengthen when
+  //    you're in the zone (riding flow beats forcing a rigid cutoff), shorten
   //    when the last blocks felt scattered.
   const score = recentFocusScore(ctx.recentFocusBlocks);
   if (score != null) {
@@ -78,7 +88,16 @@ export function decideFocusBlock(
     }
   }
 
-  // 3) Don't blow past an upcoming commitment — leave 1 min buffer.
+  // 3) Fatigue taper — rigid fixed intervals accelerate fatigue/motivation
+  //    decline (PMC12292963). As the streak since the last long break grows,
+  //    gently shorten focus so we stay ahead of that curve.
+  if (ctx.focusStreak >= 2) {
+    const taper = Math.max(0.8, 1 - 0.06 * (ctx.focusStreak - 1));
+    sec *= taper;
+    if (ctx.focusStreak >= 3) reasons.push("a touch shorter to stay fresh");
+  }
+
+  // 4) Don't blow past an upcoming commitment — leave 1 min buffer.
   if (
     ctx.minutesUntilNextCommitment != null &&
     ctx.minutesUntilNextCommitment > 0
@@ -122,17 +141,19 @@ export function decideBreakBlock(
     };
   }
 
-  // Shorten the break a touch when focus is hot (keep momentum), lengthen
-  // when it's been draining.
+  // Break LENGTH drives recovery more than frequency (Albulescu 2022), so we
+  // never shrink a break to "keep momentum" — that's the rigid-Pomodoro trap.
+  // Baseline by default; lengthen when focus is draining or fatigue has built
+  // up over the streak.
   const score = recentFocusScore(ctx.recentFocusBlocks);
   let sec = settings.shortBreakSec;
   let why = "";
-  if (score != null && score >= 4.3) {
-    sec = Math.round(settings.shortBreakSec * 0.8);
-    why = " — quick one to keep your momentum";
-  } else if (score != null && score <= 2.3) {
+  if (score != null && score <= 2.3) {
     sec = Math.round(settings.shortBreakSec * 1.4);
-    why = " — a little longer to reset";
+    why = " — a little longer to properly reset";
+  } else if (ctx.focusStreak >= 3) {
+    sec = Math.round(settings.shortBreakSec * 1.2);
+    why = " — a bit longer, you've been at it a while";
   }
   const mins = Math.max(1, Math.round(sec / 60));
   return {
