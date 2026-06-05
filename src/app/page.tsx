@@ -59,9 +59,9 @@ export default function Home() {
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col items-center gap-8 px-6 py-12">
       <header className="text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">Focus Coach</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Kai</h1>
         <p className="mt-1 text-sm opacity-60">
-          An adaptive pomodoro agent — talk to it, or drive it here.
+          Your adaptive focus coach — talk to it, or drive it here.
         </p>
       </header>
 

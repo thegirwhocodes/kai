@@ -59,7 +59,9 @@ export function useVoiceAgent() {
     });
   }, []);
 
-  const speak = useCallback((text: string) => {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const speakBrowser = useCallback((text: string) => {
     if (!text || !("speechSynthesis" in window)) return;
     const u = new SpeechSynthesisUtterance(text);
     u.rate = 1.02;
@@ -68,6 +70,36 @@ export function useVoiceAgent() {
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(u);
   }, []);
+
+  // Prefer Kai's ElevenLabs voice; fall back to browser speech if the TTS
+  // route is unconfigured/unavailable.
+  const speak = useCallback(
+    async (text: string) => {
+      if (!text) return;
+      try {
+        const res = await fetch("/api/tts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text }),
+        });
+        if (!res.ok) throw new Error(`tts ${res.status}`);
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        audioRef.current?.pause();
+        const audio = new Audio(url);
+        audioRef.current = audio;
+        audio.onplay = () => setSpeaking(true);
+        audio.onended = audio.onerror = () => {
+          setSpeaking(false);
+          URL.revokeObjectURL(url);
+        };
+        await audio.play();
+      } catch {
+        speakBrowser(text); // graceful fallback
+      }
+    },
+    [speakBrowser],
+  );
 
   // Core: take a final user utterance, run the agent loop, speak the reply.
   const handleUtterance = useCallback(
@@ -81,7 +113,7 @@ export function useVoiceAgent() {
         historyRef.current = history;
         const reply = said || "Okay.";
         setLog((l) => [...l, { who: "coach", text: reply }]);
-        speak(reply);
+        void speak(reply);
       } catch (e) {
         const msg =
           e instanceof Error ? e.message : "Something went wrong reaching the coach.";

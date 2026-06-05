@@ -28,7 +28,7 @@ export function VoicePanel() {
   return (
     <section className="w-full max-w-md rounded-2xl border border-current/15 p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-medium opacity-70">Voice coach</h2>
+        <h2 className="text-sm font-medium opacity-70">Talk to Kai</h2>
         <span
           className={`text-xs ${
             listening || thinking || speaking ? "text-red-500" : "opacity-50"

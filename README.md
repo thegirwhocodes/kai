@@ -1,4 +1,4 @@
-# Focus Coach — adaptive pomodoro agent
+# Kai — adaptive pomodoro voice coach
 
 A smart, **adaptive** pomodoro agent with two channels that share one source of truth:
 
