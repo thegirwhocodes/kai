@@ -50,9 +50,13 @@ npm run dev
 
 The timer works without a key; only the voice agent route needs `ANTHROPIC_API_KEY`.
 
-## Not done yet (post-research)
+## Voice loop (wired)
 
-- Wire the browser voice loop (STT/TTS) to the `/api/agent` route.
+The browser voice loop is live: `src/lib/voice/useVoiceAgent.ts` uses the Web Speech API for STT and `SpeechSynthesis` for TTS; `src/lib/agent/client.ts` runs the act→confirm loop (executes tool calls against the store, feeds results back so the coach confirms out loud), and `src/components/VoicePanel.tsx` is the mic + transcript UI. A **text fallback** works in any browser (voice input needs Chrome/Edge). Try: *"add a task called write the essay and start a focus block on it."*
+
+## Not done yet
+
+- Swap Web Speech for a modular streaming STT→LLM→TTS pipeline (<1s latency) per `docs/RESEARCH.md` — the upgrade path for natural conversation.
 - Calendar + todo integration for real `minutesUntilNextCommitment`.
 - Server-backed sessions for cross-device sync and analytics.
-- Refine adaptive coefficients per the research findings.
+- Tune adaptive coefficients against real session data.

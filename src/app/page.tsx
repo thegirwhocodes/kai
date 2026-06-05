@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { TimerDial } from "@/components/TimerDial";
+import { VoicePanel } from "@/components/VoicePanel";
 import { KIND_LABEL } from "@/lib/format";
 import { useAgentStore } from "@/lib/store";
 import { useTicker } from "@/lib/useTicker";
@@ -159,6 +160,9 @@ export default function Home() {
         ))}
         <span className="ml-2">{completedFocus} blocks today</span>
       </div>
+
+      {/* Voice coach — talk to it, or type. Drives the same store. */}
+      <VoicePanel />
 
       {/* Tasks. */}
       <section className="w-full max-w-md">
