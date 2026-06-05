@@ -3,12 +3,15 @@
 import { useEffect, useState } from "react";
 import { TimerDial } from "@/components/TimerDial";
 import { VoicePanel } from "@/components/VoicePanel";
+import { notificationsEnabled, unlockAudio } from "@/lib/alerts";
 import { KIND_LABEL } from "@/lib/format";
 import { useAgentStore } from "@/lib/store";
+import { useAutopilot } from "@/lib/useAutopilot";
 import { useTicker } from "@/lib/useTicker";
 
 export default function Home() {
   useTicker();
+  useAutopilot();
 
   // Persisted state rehydrates only on the client; render after mount to avoid
   // a server/client hydration mismatch on the timer.
@@ -20,6 +23,8 @@ export default function Home() {
   const rationale = useAgentStore((s) => s.lastDecisionRationale);
   const tasks = useAgentStore((s) => s.tasks);
   const session = useAgentStore((s) => s.session);
+  const settings = useAgentStore((s) => s.settings);
+  const lastCompletedFocusId = useAgentStore((s) => s.lastCompletedFocusId);
 
   const startFocus = useAgentStore((s) => s.startNextFocus);
   const startBreak = useAgentStore((s) => s.startBreak);
@@ -27,26 +32,38 @@ export default function Home() {
   const resume = useAgentStore((s) => s.resume);
   const complete = useAgentStore((s) => s.completeActive);
   const skip = useAgentStore((s) => s.skipActive);
-  const rate = useAgentStore((s) => s.rateActiveFocus);
+  const rateBlock = useAgentStore((s) => s.rateBlock);
   const addTask = useAgentStore((s) => s.addTask);
   const completeTask = useAgentStore((s) => s.completeTask);
+  const updateSettings = useAgentStore((s) => s.updateSettings);
 
   const [taskTitle, setTaskTitle] = useState("");
   const [selectedTask, setSelectedTask] = useState<string | undefined>();
+  const [notifOn, setNotifOn] = useState(false);
+  useEffect(() => setNotifOn(notificationsEnabled()), [mounted]);
 
   const kind = active?.kind ?? "idle";
-  const isFocus = active?.kind === "focus";
   const isRunning = active?.status === "running";
   const isPaused = active?.status === "paused";
   const justFinished =
     active?.status === "completed" || active?.status === "abandoned";
-  const awaitingRating =
-    isFocus && active?.status === "completed" && active.focusRating == null;
 
   const completedFocus =
     session?.blocks.filter(
       (b) => b.kind === "focus" && b.status === "completed",
     ).length ?? 0;
+
+  // Any user gesture that begins a block also unlocks audio + notifications.
+  const beginFocus = () => {
+    unlockAudio();
+    setNotifOn(notificationsEnabled());
+    startFocus(selectedTask);
+  };
+  const beginBreak = () => {
+    unlockAudio();
+    setNotifOn(notificationsEnabled());
+    startBreak();
+  };
 
   if (!mounted) {
     return (
@@ -57,11 +74,11 @@ export default function Home() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col items-center gap-8 px-6 py-12">
+    <main className="mx-auto flex min-h-screen max-w-3xl flex-col items-center gap-7 px-6 py-12">
       <header className="text-center">
         <h1 className="text-2xl font-semibold tracking-tight">Kai</h1>
         <p className="mt-1 text-sm opacity-60">
-          Your adaptive focus coach — talk to it, or drive it here.
+          Your adaptive focus coach — hands-free, or drive it here.
         </p>
       </header>
 
@@ -79,15 +96,26 @@ export default function Home() {
         </p>
       )}
 
-      {/* Rating prompt after a focus block. */}
-      {awaitingRating && (
+      {/* Auto-advance hint. */}
+      {justFinished && settings.autoStart && (
+        <p className="text-xs text-red-500">
+          {active?.kind === "focus"
+            ? "Break starting automatically…"
+            : "Next focus block starting automatically…"}
+        </p>
+      )}
+
+      {/* Rating prompt — survives auto-advance (rates the last focus block). */}
+      {lastCompletedFocusId && (
         <div className="flex flex-col items-center gap-2">
           <span className="text-sm opacity-70">How focused were you?</span>
           <div className="flex gap-2">
             {[1, 2, 3, 4, 5].map((n) => (
               <button
                 key={n}
-                onClick={() => rate(n as 1 | 2 | 3 | 4 | 5)}
+                onClick={() =>
+                  rateBlock(lastCompletedFocusId, n as 1 | 2 | 3 | 4 | 5)
+                }
                 className="h-10 w-10 rounded-full border border-current/20 text-sm font-medium hover:bg-current/10"
               >
                 {n}
@@ -102,13 +130,13 @@ export default function Home() {
         {!active || justFinished ? (
           <>
             <button
-              onClick={() => startFocus(selectedTask)}
+              onClick={beginFocus}
               className="rounded-full bg-red-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-red-600"
             >
               Start focus
             </button>
             <button
-              onClick={() => startBreak()}
+              onClick={beginBreak}
               className="rounded-full border border-current/20 px-6 py-2.5 text-sm font-medium hover:bg-current/10"
             >
               Take a break
@@ -159,6 +187,41 @@ export default function Home() {
           />
         ))}
         <span className="ml-2">{completedFocus} blocks today</span>
+      </div>
+
+      {/* Hands-free settings. */}
+      <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
+        <Toggle
+          label="Autopilot"
+          on={settings.autoStart}
+          onClick={() => updateSettings({ autoStart: !settings.autoStart })}
+          title="Auto-start the next focus/break with no clicks"
+        />
+        <Toggle
+          label="Sound"
+          on={settings.soundAlerts}
+          onClick={() => updateSettings({ soundAlerts: !settings.soundAlerts })}
+          title="Chime when blocks start and end"
+        />
+        <Toggle
+          label="Voice"
+          on={settings.voiceAlerts}
+          onClick={() => updateSettings({ voiceAlerts: !settings.voiceAlerts })}
+          title="Kai speaks each transition aloud"
+        />
+        {!notifOn && (
+          <button
+            onClick={() => {
+              unlockAudio();
+              // permission resolves async; reflect it shortly after
+              setTimeout(() => setNotifOn(notificationsEnabled()), 800);
+            }}
+            className="rounded-full border border-current/20 px-3 py-1.5 hover:bg-current/10"
+            title="Get a system notification when blocks start/end"
+          >
+            🔔 Enable notifications
+          </button>
+        )}
       </div>
 
       {/* Voice coach — talk to it, or type. Drives the same store. */}
@@ -225,5 +288,32 @@ export default function Home() {
         </ul>
       </section>
     </main>
+  );
+}
+
+function Toggle({
+  label,
+  on,
+  onClick,
+  title,
+}: {
+  label: string;
+  on: boolean;
+  onClick: () => void;
+  title?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className={`rounded-full border px-3 py-1.5 transition-colors ${
+        on
+          ? "border-red-500/60 bg-red-500/10 text-red-500"
+          : "border-current/20 opacity-60 hover:opacity-100"
+      }`}
+    >
+      {on ? "● " : "○ "}
+      {label}
+    </button>
   );
 }

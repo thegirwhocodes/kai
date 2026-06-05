@@ -86,6 +86,10 @@ export interface AgentSettings {
   minFocusSec: number; // adaptive floor
   maxFocusSec: number; // adaptive ceiling
   adaptive: boolean; // master switch for the adaptive engine
+  autoStart: boolean; // auto-advance focus <-> break without a click
+  autoStartDelaySec: number; // grace period before the next block begins
+  soundAlerts: boolean; // chime on start/end
+  voiceAlerts: boolean; // Kai speaks each transition aloud
 }
 
 export const DEFAULT_SETTINGS: AgentSettings = {
@@ -96,4 +100,8 @@ export const DEFAULT_SETTINGS: AgentSettings = {
   minFocusSec: 10 * 60,
   maxFocusSec: 50 * 60,
   adaptive: true,
+  autoStart: true,
+  autoStartDelaySec: 5,
+  soundAlerts: true,
+  voiceAlerts: true,
 };

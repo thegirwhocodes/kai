@@ -53,7 +53,11 @@ export function executeToolCall(call: ToolCall): string {
     case "rate_focus": {
       const r = Number(input.rating);
       if (!(r >= 1 && r <= 5)) return "Rating must be 1-5.";
-      s.rateActiveFocus(r as 1 | 2 | 3 | 4 | 5);
+      // Prefer the just-finished focus block (autopilot may have moved on to a
+      // break); fall back to the active block.
+      const targetId = s.lastCompletedFocusId ?? s.activeBlock?.id;
+      if (!targetId) return "No focus block to rate yet.";
+      s.rateBlock(targetId, r as 1 | 2 | 3 | 4 | 5);
       return `Recorded focus rating ${r}. The engine will use it for the next block.`;
     }
     case "add_task": {

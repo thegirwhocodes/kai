@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { runUserTurn, type Message } from "@/lib/agent/client";
+import { speakKai } from "@/lib/voice/speak";
 
 // --- Minimal Web Speech typings (not in lib.dom for all targets) ---
 interface SpeechRecognitionResultLike {
@@ -59,46 +60,14 @@ export function useVoiceAgent() {
     });
   }, []);
 
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  const speakBrowser = useCallback((text: string) => {
-    if (!text || !("speechSynthesis" in window)) return;
-    const u = new SpeechSynthesisUtterance(text);
-    u.rate = 1.02;
-    u.onstart = () => setSpeaking(true);
-    u.onend = () => setSpeaking(false);
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(u);
-  }, []);
-
-  // Prefer Kai's ElevenLabs voice; fall back to browser speech if the TTS
-  // route is unconfigured/unavailable.
+  // Kai's voice — shared path (ElevenLabs with browser-speech fallback).
   const speak = useCallback(
-    async (text: string) => {
-      if (!text) return;
-      try {
-        const res = await fetch("/api/tts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text }),
-        });
-        if (!res.ok) throw new Error(`tts ${res.status}`);
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        audioRef.current?.pause();
-        const audio = new Audio(url);
-        audioRef.current = audio;
-        audio.onplay = () => setSpeaking(true);
-        audio.onended = audio.onerror = () => {
-          setSpeaking(false);
-          URL.revokeObjectURL(url);
-        };
-        await audio.play();
-      } catch {
-        speakBrowser(text); // graceful fallback
-      }
-    },
-    [speakBrowser],
+    (text: string) =>
+      speakKai(text, {
+        onStart: () => setSpeaking(true),
+        onEnd: () => setSpeaking(false),
+      }),
+    [],
   );
 
   // Core: take a final user utterance, run the agent loop, speak the reply.

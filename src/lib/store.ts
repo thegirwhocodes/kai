@@ -30,6 +30,8 @@ interface StoreState {
   /** Seconds remaining on the active block. */
   remainingSec: number;
   lastDecisionRationale: string | null;
+  /** Last completed focus block awaiting a focus rating (or null). */
+  lastCompletedFocusId: string | null;
 
   // --- lifecycle ---
   ensureSession: () => Session;
@@ -42,6 +44,10 @@ interface StoreState {
   /** Abandon the active block early. */
   skipActive: () => void;
   rateActiveFocus: (rating: 1 | 2 | 3 | 4 | 5) => void;
+  /** Rate any block by id (used after auto-advance moved past it). */
+  rateBlock: (id: string, rating: 1 | 2 | 3 | 4 | 5) => void;
+  /** Task id of the most recent focus block, for auto-continuing on it. */
+  lastFocusTaskId: () => string | undefined;
   noteInterruption: () => void;
   tick: (deltaSec: number) => void;
 
@@ -84,6 +90,7 @@ export const useAgentStore = create<StoreState>()(
       activeBlock: null,
       remainingSec: 0,
       lastDecisionRationale: null,
+      lastCompletedFocusId: null,
 
       ensureSession: () => {
         const existing = get().session;
@@ -170,13 +177,16 @@ export const useAgentStore = create<StoreState>()(
           endedAt: Date.now(),
           elapsedSec: Math.max(b.elapsedSec, elapsed),
         });
-        // Credit the task with a spent block.
-        if (b.kind === "focus" && b.taskId) {
-          set((s) => ({
-            tasks: s.tasks.map((t) =>
-              t.id === b.taskId ? { ...t, spentBlocks: t.spentBlocks + 1 } : t,
-            ),
-          }));
+        // Credit the task with a spent block, and flag it for a focus rating.
+        if (b.kind === "focus") {
+          set({ lastCompletedFocusId: b.id });
+          if (b.taskId) {
+            set((s) => ({
+              tasks: s.tasks.map((t) =>
+                t.id === b.taskId ? { ...t, spentBlocks: t.spentBlocks + 1 } : t,
+              ),
+            }));
+          }
         }
       },
 
@@ -188,6 +198,33 @@ export const useAgentStore = create<StoreState>()(
 
       rateActiveFocus: (rating) => {
         patchActive(set, get, { focusRating: rating });
+      },
+
+      rateBlock: (id, rating) => {
+        set((s) => ({
+          lastCompletedFocusId:
+            s.lastCompletedFocusId === id ? null : s.lastCompletedFocusId,
+          activeBlock:
+            s.activeBlock?.id === id
+              ? { ...s.activeBlock, focusRating: rating }
+              : s.activeBlock,
+          session: s.session
+            ? {
+                ...s.session,
+                blocks: s.session.blocks.map((x) =>
+                  x.id === id ? { ...x, focusRating: rating } : x,
+                ),
+              }
+            : s.session,
+        }));
+      },
+
+      lastFocusTaskId: () => {
+        const blocks = get().session?.blocks ?? [];
+        for (let i = blocks.length - 1; i >= 0; i--) {
+          if (blocks[i].kind === "focus") return blocks[i].taskId;
+        }
+        return undefined;
       },
 
       noteInterruption: () => {
