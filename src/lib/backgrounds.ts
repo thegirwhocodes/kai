@@ -8,20 +8,26 @@ export interface Background {
 }
 
 export const BACKGROUNDS: Background[] = [
-  { id: "sky-pastel", name: "Pastel Sky", src: "/backgrounds/sky-pastel.jpg" },
-  { id: "clouds-sunset", name: "Sunset Clouds", src: "/backgrounds/clouds-sunset.jpg" },
-  { id: "sakura", name: "Sakura", src: "/backgrounds/sakura.jpg" },
-  { id: "sakura-path", name: "Blossom Path", src: "/backgrounds/sakura-path.jpg" },
-  { id: "sky-lilac", name: "Lilac Sky", src: "/backgrounds/sky-lilac.jpg" },
-  { id: "sunset-glow", name: "Golden Hour", src: "/backgrounds/sunset-glow.jpg" },
-  { id: "mountains-fog", name: "Misty Peaks", src: "/backgrounds/mountains-fog.jpg" },
-  { id: "peaks-cloud", name: "Cloud Peaks", src: "/backgrounds/peaks-cloud.jpg" },
+  { id: "pink-bloom", name: "Pink Bloom", src: "/backgrounds/pink-bloom.jpg" },
+  { id: "ghibli-forest", name: "Forest Glade", src: "/backgrounds/ghibli-forest.jpg" },
+  { id: "ghibli-sunset", name: "Anime Sunset", src: "/backgrounds/ghibli-sunset.jpg" },
+  { id: "pink-clouds", name: "Pink Clouds", src: "/backgrounds/pink-clouds.jpg" },
+  { id: "sakura-girl", name: "Sakura", src: "/backgrounds/sakura-girl.jpg" },
+  { id: "kimono-glow", name: "Golden Hour", src: "/backgrounds/kimono-glow.jpg" },
+  { id: "beach-dusk", name: "Quiet Shore", src: "/backgrounds/beach-dusk.jpg" },
+  { id: "starry-night", name: "Starry Night", src: "/backgrounds/starry-night.jpg" },
 ];
 
-export const DEFAULT_BACKGROUND = "/backgrounds/sky-pastel.jpg";
+export const DEFAULT_BACKGROUND = "/backgrounds/pink-bloom.jpg";
+
+const KNOWN = new Set(BACKGROUNDS.map((b) => b.src));
 
 /** Turn a stored background value (path or pasted URL) into a CSS background. */
 export function toCss(bg: string): string {
-  const v = bg || DEFAULT_BACKGROUND;
+  let v = bg || DEFAULT_BACKGROUND;
+  // A persisted /backgrounds/* path that no longer exists (an old preset we
+  // removed) would 404 — fall back to the current default. Pasted http(s)
+  // URLs are always honored.
+  if (v.startsWith("/backgrounds/") && !KNOWN.has(v)) v = DEFAULT_BACKGROUND;
   return `url("${v}") center / cover no-repeat fixed`;
 }

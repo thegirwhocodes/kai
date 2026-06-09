@@ -105,5 +105,5 @@ export const DEFAULT_SETTINGS: AgentSettings = {
   autoStartDelaySec: 5,
   soundAlerts: true,
   voiceAlerts: true,
-  background: "/backgrounds/sky-pastel.jpg",
+  background: "/backgrounds/pink-bloom.jpg",
 };
