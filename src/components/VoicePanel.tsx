@@ -25,14 +25,17 @@ export function VoicePanel() {
         ? "Listening…"
         : "Talk to your coach";
 
+  const busy = listening || thinking || speaking;
+
   return (
-    <section className="w-full max-w-md rounded-2xl border border-current/15 p-4">
+    <section className="glass w-full max-w-md rounded-2xl p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-medium opacity-70">Talk to Kai</h2>
+        <h2 className="text-sm font-medium" style={{ color: "var(--muted)" }}>
+          Talk to Kai
+        </h2>
         <span
-          className={`text-xs ${
-            listening || thinking || speaking ? "text-red-500" : "opacity-50"
-          }`}
+          className="text-xs"
+          style={{ color: busy ? "var(--focus)" : "var(--muted)" }}
         >
           {status}
         </span>
@@ -49,11 +52,13 @@ export function VoicePanel() {
               }`}
             >
               <span
-                className={`inline-block rounded-2xl px-3 py-1.5 ${
-                  e.who === "you"
-                    ? "bg-red-500/10"
-                    : "bg-current/5"
-                }`}
+                className="inline-block rounded-2xl px-3 py-1.5"
+                style={{
+                  background:
+                    e.who === "you"
+                      ? "rgba(251,122,142,0.15)"
+                      : "rgba(255,255,255,0.06)",
+                }}
               >
                 {e.text}
               </span>
@@ -71,11 +76,16 @@ export function VoicePanel() {
         {supported.stt ? (
           <button
             onClick={listening ? stopListening : startListening}
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg ${
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg transition ${
               listening
-                ? "animate-pulse bg-red-500 text-white"
-                : "border border-current/20 hover:bg-current/10"
+                ? "animate-pulse text-[#1a1530]"
+                : "border border-white/20 hover:bg-white/10"
             }`}
+            style={
+              listening
+                ? { background: "linear-gradient(135deg,#ffb199,#fb7a8e)" }
+                : undefined
+            }
             aria-label={listening ? "Stop listening" : "Start listening"}
           >
             {listening ? "■" : "🎤"}
@@ -96,14 +106,14 @@ export function VoicePanel() {
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder={
-              supported.stt ? "…or type to your coach" : "Type to your coach"
+              supported.stt ? "…or type to Kai" : "Type to Kai"
             }
-            className="flex-1 rounded-lg border border-current/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-current/40"
+            className="flex-1 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none transition focus:border-white/40"
           />
           <button
             type="submit"
             disabled={thinking}
-            className="rounded-lg border border-current/20 px-3 py-2 text-sm hover:bg-current/10 disabled:opacity-40"
+            className="rounded-lg border border-white/15 px-3 py-2 text-sm transition hover:bg-white/10 disabled:opacity-40"
           >
             Send
           </button>
@@ -111,7 +121,7 @@ export function VoicePanel() {
       </div>
 
       {!supported.stt && (
-        <p className="mt-2 text-xs opacity-50">
+        <p className="mt-2 text-xs" style={{ color: "var(--muted)" }}>
           Voice input needs Chrome or Edge. Typing works everywhere; replies are
           spoken aloud if your browser supports speech.
         </p>

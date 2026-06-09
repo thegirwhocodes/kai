@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { TimerDial } from "@/components/TimerDial";
 import { VoicePanel } from "@/components/VoicePanel";
@@ -13,8 +14,6 @@ export default function Home() {
   useTicker();
   useAutopilot();
 
-  // Persisted state rehydrates only on the client; render after mount to avoid
-  // a server/client hydration mismatch on the timer.
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -53,7 +52,6 @@ export default function Home() {
       (b) => b.kind === "focus" && b.status === "completed",
     ).length ?? 0;
 
-  // Any user gesture that begins a block also unlocks audio + notifications.
   const beginFocus = () => {
     unlockAudio();
     setNotifOn(notificationsEnabled());
@@ -67,17 +65,25 @@ export default function Home() {
 
   if (!mounted) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-3xl items-center justify-center px-6 py-12">
+      <main className="grid min-h-screen place-items-center">
         <span className="text-sm opacity-40">Loading…</span>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col items-center gap-7 px-6 py-12">
-      <header className="text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">Kai</h1>
-        <p className="mt-1 text-sm opacity-60">
+    <main className="mx-auto flex min-h-screen max-w-2xl flex-col items-center gap-8 px-6 py-14">
+      <header className="flex flex-col items-center text-center">
+        <Image
+          src="/logo.svg"
+          alt="Kai"
+          width={64}
+          height={64}
+          priority
+          className="drop-shadow-[0_4px_24px_rgba(251,122,142,0.35)]"
+        />
+        <h1 className="mt-3 text-3xl font-semibold tracking-tight">Kai</h1>
+        <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>
           Your adaptive focus coach — hands-free, or drive it here.
         </p>
       </header>
@@ -89,26 +95,25 @@ export default function Home() {
         label={active ? KIND_LABEL[active.kind] ?? "Focus" : "Ready"}
       />
 
-      {/* The agent's reasoning — the "smart" part made visible. */}
       {rationale && (
-        <p className="max-w-md text-center text-sm italic opacity-75">
+        <p className="max-w-md text-center text-sm italic" style={{ color: "var(--muted)" }}>
           “{rationale}”
         </p>
       )}
 
-      {/* Auto-advance hint. */}
       {justFinished && settings.autoStart && (
-        <p className="text-xs text-red-500">
+        <p className="text-xs" style={{ color: "var(--focus)" }}>
           {active?.kind === "focus"
             ? "Break starting automatically…"
             : "Next focus block starting automatically…"}
         </p>
       )}
 
-      {/* Rating prompt — survives auto-advance (rates the last focus block). */}
       {lastCompletedFocusId && (
-        <div className="flex flex-col items-center gap-2">
-          <span className="text-sm opacity-70">How focused were you?</span>
+        <div className="glass flex flex-col items-center gap-2 rounded-2xl px-5 py-3">
+          <span className="text-sm" style={{ color: "var(--muted)" }}>
+            How focused were you?
+          </span>
           <div className="flex gap-2">
             {[1, 2, 3, 4, 5].map((n) => (
               <button
@@ -116,7 +121,7 @@ export default function Home() {
                 onClick={() =>
                   rateBlock(lastCompletedFocusId, n as 1 | 2 | 3 | 4 | 5)
                 }
-                className="h-10 w-10 rounded-full border border-current/20 text-sm font-medium hover:bg-current/10"
+                className="h-10 w-10 rounded-full border border-white/15 text-sm font-medium transition hover:border-white/40 hover:bg-white/10"
               >
                 {n}
               </button>
@@ -129,46 +134,31 @@ export default function Home() {
       <div className="flex flex-wrap items-center justify-center gap-3">
         {!active || justFinished ? (
           <>
-            <button
-              onClick={beginFocus}
-              className="rounded-full bg-red-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-red-600"
-            >
+            <button onClick={beginFocus} className="btn-primary">
               Start focus
             </button>
-            <button
-              onClick={beginBreak}
-              className="rounded-full border border-current/20 px-6 py-2.5 text-sm font-medium hover:bg-current/10"
-            >
+            <button onClick={beginBreak} className="btn-ghost">
               Take a break
             </button>
           </>
         ) : (
           <>
             {isRunning && (
-              <button
-                onClick={pause}
-                className="rounded-full border border-current/20 px-6 py-2.5 text-sm font-medium hover:bg-current/10"
-              >
+              <button onClick={pause} className="btn-ghost">
                 Pause
               </button>
             )}
             {isPaused && (
-              <button
-                onClick={resume}
-                className="rounded-full bg-red-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-red-600"
-              >
+              <button onClick={resume} className="btn-primary">
                 Resume
               </button>
             )}
-            <button
-              onClick={complete}
-              className="rounded-full border border-current/20 px-6 py-2.5 text-sm font-medium hover:bg-current/10"
-            >
+            <button onClick={complete} className="btn-ghost">
               Done early
             </button>
             <button
               onClick={skip}
-              className="rounded-full px-4 py-2.5 text-sm opacity-60 hover:opacity-100"
+              className="rounded-full px-4 py-2.5 text-sm opacity-50 transition hover:opacity-100"
             >
               Skip
             </button>
@@ -176,14 +166,15 @@ export default function Home() {
         )}
       </div>
 
-      {/* Session ribbon — completed focus blocks so far. */}
-      <div className="flex items-center gap-1.5 text-xs opacity-60">
+      {/* Session ribbon. */}
+      <div className="flex items-center gap-1.5 text-xs" style={{ color: "var(--muted)" }}>
         {Array.from({ length: Math.max(4, completedFocus) }).map((_, i) => (
           <span
             key={i}
-            className={`h-2.5 w-2.5 rounded-full ${
-              i < completedFocus ? "bg-red-500" : "bg-current/15"
-            }`}
+            className="h-2.5 w-2.5 rounded-full"
+            style={{
+              background: i < completedFocus ? "var(--focus)" : "rgba(255,255,255,0.14)",
+            }}
           />
         ))}
         <span className="ml-2">{completedFocus} blocks today</span>
@@ -213,10 +204,9 @@ export default function Home() {
           <button
             onClick={() => {
               unlockAudio();
-              // permission resolves async; reflect it shortly after
               setTimeout(() => setNotifOn(notificationsEnabled()), 800);
             }}
-            className="rounded-full border border-current/20 px-3 py-1.5 hover:bg-current/10"
+            className="rounded-full border border-white/15 px-3 py-1.5 transition hover:bg-white/10"
             title="Get a system notification when blocks start/end"
           >
             🔔 Enable notifications
@@ -224,12 +214,14 @@ export default function Home() {
         )}
       </div>
 
-      {/* Voice coach — talk to it, or type. Drives the same store. */}
+      {/* Voice coach. */}
       <VoicePanel />
 
       {/* Tasks. */}
-      <section className="w-full max-w-md">
-        <h2 className="mb-2 text-sm font-medium opacity-70">Tasks</h2>
+      <section className="glass w-full max-w-md rounded-2xl p-4">
+        <h2 className="mb-3 text-sm font-medium" style={{ color: "var(--muted)" }}>
+          Tasks
+        </h2>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -244,11 +236,11 @@ export default function Home() {
             value={taskTitle}
             onChange={(e) => setTaskTitle(e.target.value)}
             placeholder="What are you working on?"
-            className="flex-1 rounded-lg border border-current/20 bg-transparent px-3 py-2 text-sm outline-none focus:border-current/40"
+            className="flex-1 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none transition focus:border-white/40"
           />
           <button
             type="submit"
-            className="rounded-lg border border-current/20 px-3 py-2 text-sm hover:bg-current/10"
+            className="rounded-lg border border-white/15 px-3 py-2 text-sm transition hover:bg-white/10"
           >
             Add
           </button>
@@ -259,15 +251,15 @@ export default function Home() {
             .map((t) => (
               <li
                 key={t.id}
-                className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm ${
+                className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm transition ${
                   selectedTask === t.id
-                    ? "border-red-500/60"
-                    : "border-current/15"
+                    ? "border-[var(--focus)]/60 bg-white/5"
+                    : "border-white/10"
                 }`}
               >
                 <button
                   onClick={() => completeTask(t.id)}
-                  className="h-4 w-4 rounded-full border border-current/40 hover:bg-current/20"
+                  className="h-4 w-4 rounded-full border border-white/40 transition hover:bg-white/20"
                   aria-label="Complete task"
                 />
                 <button
@@ -276,17 +268,23 @@ export default function Home() {
                 >
                   {t.title}
                 </button>
-                <span className="opacity-50">
+                <span style={{ color: "var(--muted)" }}>
                   {t.spentBlocks}
                   {t.estimateBlocks ? `/${t.estimateBlocks}` : ""} ▮
                 </span>
               </li>
             ))}
           {tasks.filter((t) => !t.done).length === 0 && (
-            <li className="text-sm opacity-50">No tasks yet.</li>
+            <li className="text-sm" style={{ color: "var(--muted)" }}>
+              No tasks yet.
+            </li>
           )}
         </ul>
       </section>
+
+      <footer className="pt-2 text-xs" style={{ color: "var(--muted)" }}>
+        heykai.vercel.app
+      </footer>
     </main>
   );
 }
@@ -306,11 +304,16 @@ function Toggle({
     <button
       onClick={onClick}
       title={title}
-      className={`rounded-full border px-3 py-1.5 transition-colors ${
+      className="rounded-full border px-3 py-1.5 transition"
+      style={
         on
-          ? "border-red-500/60 bg-red-500/10 text-red-500"
-          : "border-current/20 opacity-60 hover:opacity-100"
-      }`}
+          ? {
+              borderColor: "rgba(251,122,142,0.6)",
+              background: "rgba(251,122,142,0.12)",
+              color: "var(--focus)",
+            }
+          : { borderColor: "rgba(255,255,255,0.15)", opacity: 0.65 }
+      }
     >
       {on ? "● " : "○ "}
       {label}

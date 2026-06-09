@@ -1,26 +1,140 @@
 @import "tailwindcss";
 
+/* Kai's look: a calm, dreamy dusk — inspired by aesthetic focus dashboards
+   (Flocus et al.). Fixed dark scene rather than following system theme, so the
+   ambience is consistent. */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #f4f1ee;
+  --muted: rgba(244, 241, 238, 0.62);
+
+  --focus: #fb7a8e; /* warm rose */
+  --break: #6fe3c8; /* soft mint */
+  --long: #b6a6ff; /* lavender */
+
+  --glass-bg: rgba(255, 255, 255, 0.06);
+  --glass-brd: rgba(255, 255, 255, 0.12);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
 }
 
 @theme inline {
-  --color-background: var(--background);
+  --color-background: #1a1530;
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  min-height: 100%;
 }
 
 body {
-  background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  background:
+    radial-gradient(
+      1200px 800px at 15% -10%,
+      rgba(255, 154, 158, 0.28),
+      transparent 55%
+    ),
+    radial-gradient(
+      1000px 700px at 110% 10%,
+      rgba(140, 120, 255, 0.3),
+      transparent 55%
+    ),
+    radial-gradient(
+      900px 900px at 50% 120%,
+      rgba(110, 227, 200, 0.16),
+      transparent 55%
+    ),
+    linear-gradient(160deg, #241a3e 0%, #1a1530 45%, #120f24 100%);
+  background-attachment: fixed;
+}
+
+/* Slow, dreamy drift on the colored glows. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      600px 600px at 30% 30%,
+      rgba(255, 122, 142, 0.12),
+      transparent 60%
+    ),
+    radial-gradient(
+      700px 700px at 70% 60%,
+      rgba(182, 166, 255, 0.12),
+      transparent 60%
+    );
+  animation: drift 22s ease-in-out infinite alternate;
+}
+
+@keyframes drift {
+  from {
+    transform: translate3d(-3%, -2%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(3%, 3%, 0) scale(1.08);
+  }
+}
+
+/* Frosted glass surface. */
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-brd);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  box-shadow:
+    0 10px 40px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Buttons */
+.btn-primary {
+  border-radius: 9999px;
+  padding: 0.65rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1a1530;
+  background: linear-gradient(135deg, #ffb199, #fb7a8e);
+  box-shadow: 0 8px 24px rgba(251, 122, 142, 0.35);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    filter 0.15s ease;
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 12px 30px rgba(251, 122, 142, 0.45);
+}
+
+.btn-ghost {
+  border-radius: 9999px;
+  padding: 0.65rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before {
+    animation: none;
+  }
 }

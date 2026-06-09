@@ -266,12 +266,27 @@ export const useAgentStore = create<StoreState>()(
         set((s) => ({ settings: { ...s.settings, ...patch } })),
     }),
     {
+      // NOTE: keep this key as "pomodoro-agent" forever — it's where existing
+      // users' tasks/sessions live in localStorage. Renaming it would orphan
+      // their saved data. (The product is "Kai"; the storage key is legacy.)
       name: "pomodoro-agent",
       partialize: (s) => ({
         settings: s.settings,
         tasks: s.tasks,
         session: s.session,
       }),
+      // Default merge is shallow, which would let an OLD persisted `settings`
+      // object (missing newer keys like autoStart) clobber the defaults. Deep-
+      // merge settings so new fields get their defaults, while tasks/session are
+      // taken verbatim from storage (never overwritten).
+      merge: (persisted, current) => {
+        const p = (persisted ?? {}) as Partial<StoreState>;
+        return {
+          ...current,
+          ...p,
+          settings: { ...DEFAULT_SETTINGS, ...(p.settings ?? {}) },
+        };
+      },
     },
   ),
 );
