@@ -2,10 +2,15 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { TimerDial } from "@/components/TimerDial";
+import { Clock, greeting } from "@/components/Clock";
+import { Dock, type Panel } from "@/components/Dock";
+import { Quote } from "@/components/Quote";
+import { SettingsPanel } from "@/components/SettingsPanel";
+import { TasksPanel } from "@/components/TasksPanel";
 import { VoicePanel } from "@/components/VoicePanel";
-import { notificationsEnabled, unlockAudio } from "@/lib/alerts";
-import { KIND_LABEL } from "@/lib/format";
+import { unlockAudio } from "@/lib/alerts";
+import { toCss } from "@/lib/backgrounds";
+import { KIND_LABEL, mmss } from "@/lib/format";
 import { useAgentStore } from "@/lib/store";
 import { useAutopilot } from "@/lib/useAutopilot";
 import { useTicker } from "@/lib/useTicker";
@@ -20,11 +25,8 @@ export default function Home() {
   const active = useAgentStore((s) => s.activeBlock);
   const remaining = useAgentStore((s) => s.remainingSec);
   const rationale = useAgentStore((s) => s.lastDecisionRationale);
-  const tasks = useAgentStore((s) => s.tasks);
-  const session = useAgentStore((s) => s.session);
   const settings = useAgentStore((s) => s.settings);
   const lastCompletedFocusId = useAgentStore((s) => s.lastCompletedFocusId);
-
   const startFocus = useAgentStore((s) => s.startNextFocus);
   const startBreak = useAgentStore((s) => s.startBreak);
   const pause = useAgentStore((s) => s.pause);
@@ -32,291 +34,156 @@ export default function Home() {
   const complete = useAgentStore((s) => s.completeActive);
   const skip = useAgentStore((s) => s.skipActive);
   const rateBlock = useAgentStore((s) => s.rateBlock);
-  const addTask = useAgentStore((s) => s.addTask);
-  const completeTask = useAgentStore((s) => s.completeTask);
-  const updateSettings = useAgentStore((s) => s.updateSettings);
 
-  const [taskTitle, setTaskTitle] = useState("");
+  const [panel, setPanel] = useState<Panel>(null);
   const [selectedTask, setSelectedTask] = useState<string | undefined>();
-  const [notifOn, setNotifOn] = useState(false);
-  useEffect(() => setNotifOn(notificationsEnabled()), [mounted]);
 
-  const kind = active?.kind ?? "idle";
   const isRunning = active?.status === "running";
   const isPaused = active?.status === "paused";
   const justFinished =
     active?.status === "completed" || active?.status === "abandoned";
-
-  const completedFocus =
-    session?.blocks.filter(
-      (b) => b.kind === "focus" && b.status === "completed",
-    ).length ?? 0;
+  const idle = !active || justFinished;
 
   const beginFocus = () => {
     unlockAudio();
-    setNotifOn(notificationsEnabled());
     startFocus(selectedTask);
   };
   const beginBreak = () => {
     unlockAudio();
-    setNotifOn(notificationsEnabled());
     startBreak();
+  };
+  const fullscreen = () => {
+    if (typeof document === "undefined") return;
+    if (!document.fullscreenElement) void document.documentElement.requestFullscreen?.();
+    else void document.exitFullscreen?.();
   };
 
   if (!mounted) {
-    return (
-      <main className="grid min-h-screen place-items-center">
-        <span className="text-sm opacity-40">Loading…</span>
-      </main>
-    );
+    return <main className="min-h-screen" style={{ background: "#15101f" }} />;
   }
 
+  const accent =
+    active?.kind === "short_break"
+      ? "var(--break)"
+      : active?.kind === "long_break"
+        ? "var(--long)"
+        : "var(--focus)";
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-2xl flex-col items-center gap-8 px-6 py-14">
-      <header className="flex flex-col items-center text-center">
-        <Image
-          src="/logo.svg"
-          alt="Kai"
-          width={64}
-          height={64}
-          priority
-          className="drop-shadow-[0_4px_24px_rgba(251,122,142,0.35)]"
-        />
-        <h1 className="mt-3 text-3xl font-semibold tracking-tight">Kai</h1>
-        <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>
-          Your adaptive focus coach — hands-free, or drive it here.
-        </p>
-      </header>
+    <main className="relative min-h-screen overflow-hidden">
+      <div className="scene-bg" style={{ background: toCss(settings.background) }} />
+      <div className="scene-veil" />
 
-      <TimerDial
-        remainingSec={active ? remaining : 0}
-        plannedSec={active?.plannedSec ?? 1}
-        kind={kind}
-        label={active ? KIND_LABEL[active.kind] ?? "Focus" : "Ready"}
-      />
+      {/* Logo */}
+      <div className="fixed left-6 top-6 z-20 flex items-center gap-2.5">
+        <Image src="/logo.svg" alt="Kai" width={36} height={36} priority />
+        <span className="text-2xl font-semibold lowercase tracking-tight">kai</span>
+      </div>
 
-      {rationale && (
-        <p className="max-w-md text-center text-sm italic" style={{ color: "var(--muted)" }}>
-          “{rationale}”
-        </p>
-      )}
+      {/* Quote */}
+      <div className="fixed right-6 top-6 z-20 hidden sm:block">
+        <Quote />
+      </div>
 
-      {justFinished && settings.autoStart && (
-        <p className="text-xs" style={{ color: "var(--focus)" }}>
-          {active?.kind === "focus"
-            ? "Break starting automatically…"
-            : "Next focus block starting automatically…"}
-        </p>
-      )}
-
-      {lastCompletedFocusId && (
-        <div className="glass flex flex-col items-center gap-2 rounded-2xl px-5 py-3">
-          <span className="text-sm" style={{ color: "var(--muted)" }}>
-            How focused were you?
-          </span>
-          <div className="flex gap-2">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <button
-                key={n}
-                onClick={() =>
-                  rateBlock(lastCompletedFocusId, n as 1 | 2 | 3 | 4 | 5)
-                }
-                className="h-10 w-10 rounded-full border border-white/15 text-sm font-medium transition hover:border-white/40 hover:bg-white/10"
-              >
-                {n}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Primary controls. */}
-      <div className="flex flex-wrap items-center justify-center gap-3">
-        {!active || justFinished ? (
+      {/* Center */}
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 text-center">
+        {idle ? (
           <>
-            <button onClick={beginFocus} className="btn-primary">
-              Start focus
-            </button>
-            <button onClick={beginBreak} className="btn-ghost">
-              Take a break
-            </button>
+            <Clock />
+            <p className="mt-5 text-xl font-light sm:text-2xl">{greeting()}</p>
+            <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
+              <button onClick={beginFocus} className="btn-primary">
+                Start focus
+              </button>
+              <button onClick={beginBreak} className="btn-ghost">
+                Take a break
+              </button>
+            </div>
           </>
         ) : (
           <>
-            {isRunning && (
-              <button onClick={pause} className="btn-ghost">
-                Pause
-              </button>
-            )}
-            {isPaused && (
-              <button onClick={resume} className="btn-primary">
-                Resume
-              </button>
-            )}
-            <button onClick={complete} className="btn-ghost">
-              Done early
-            </button>
-            <button
-              onClick={skip}
-              className="rounded-full px-4 py-2.5 text-sm opacity-50 transition hover:opacity-100"
+            <span
+              className="mb-2 text-xs font-semibold uppercase tracking-[0.3em]"
+              style={{ color: accent }}
             >
-              Skip
-            </button>
+              {KIND_LABEL[active.kind] ?? "Focus"}
+            </span>
+            <span className="clock-num text-[clamp(5rem,18vw,11rem)]">
+              {mmss(remaining)}
+            </span>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              {isRunning && (
+                <button onClick={pause} className="btn-ghost">
+                  Pause
+                </button>
+              )}
+              {isPaused && (
+                <button onClick={resume} className="btn-primary">
+                  Resume
+                </button>
+              )}
+              <button onClick={complete} className="btn-ghost">
+                Done early
+              </button>
+              <button
+                onClick={skip}
+                className="rounded-full px-4 py-2.5 text-sm opacity-60 transition hover:opacity-100"
+              >
+                Skip
+              </button>
+            </div>
           </>
         )}
-      </div>
 
-      {/* Session ribbon. */}
-      <div className="flex items-center gap-1.5 text-xs" style={{ color: "var(--muted)" }}>
-        {Array.from({ length: Math.max(4, completedFocus) }).map((_, i) => (
-          <span
-            key={i}
-            className="h-2.5 w-2.5 rounded-full"
-            style={{
-              background: i < completedFocus ? "var(--focus)" : "rgba(255,255,255,0.14)",
-            }}
-          />
-        ))}
-        <span className="ml-2">{completedFocus} blocks today</span>
-      </div>
-
-      {/* Hands-free settings. */}
-      <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
-        <Toggle
-          label="Autopilot"
-          on={settings.autoStart}
-          onClick={() => updateSettings({ autoStart: !settings.autoStart })}
-          title="Auto-start the next focus/break with no clicks"
-        />
-        <Toggle
-          label="Sound"
-          on={settings.soundAlerts}
-          onClick={() => updateSettings({ soundAlerts: !settings.soundAlerts })}
-          title="Chime when blocks start and end"
-        />
-        <Toggle
-          label="Voice"
-          on={settings.voiceAlerts}
-          onClick={() => updateSettings({ voiceAlerts: !settings.voiceAlerts })}
-          title="Kai speaks each transition aloud"
-        />
-        {!notifOn && (
-          <button
-            onClick={() => {
-              unlockAudio();
-              setTimeout(() => setNotifOn(notificationsEnabled()), 800);
-            }}
-            className="rounded-full border border-white/15 px-3 py-1.5 transition hover:bg-white/10"
-            title="Get a system notification when blocks start/end"
+        {rationale && (
+          <p
+            className="mt-6 max-w-md text-sm font-light italic"
+            style={{ color: "var(--muted)" }}
           >
-            🔔 Enable notifications
-          </button>
+            &ldquo;{rationale}&rdquo;
+          </p>
+        )}
+
+        {justFinished && settings.autoStart && (
+          <p className="mt-4 text-xs" style={{ color: accent }}>
+            {active?.kind === "focus"
+              ? "Break starting…"
+              : "Next focus block starting…"}
+          </p>
+        )}
+
+        {lastCompletedFocusId && (
+          <div className="glass mt-6 flex flex-col items-center gap-2 rounded-2xl px-5 py-3">
+            <span className="text-sm" style={{ color: "var(--muted)" }}>
+              How focused were you?
+            </span>
+            <div className="flex gap-2">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  onClick={() => rateBlock(lastCompletedFocusId, n as 1 | 2 | 3 | 4 | 5)}
+                  className="h-9 w-9 rounded-full border border-white/20 text-sm transition hover:bg-white/10"
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 
-      {/* Voice coach. */}
-      <VoicePanel />
-
-      {/* Tasks. */}
-      <section className="glass w-full max-w-md rounded-2xl p-4">
-        <h2 className="mb-3 text-sm font-medium" style={{ color: "var(--muted)" }}>
-          Tasks
-        </h2>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!taskTitle.trim()) return;
-            const t = addTask(taskTitle.trim());
-            setSelectedTask(t.id);
-            setTaskTitle("");
-          }}
-          className="mb-3 flex gap-2"
-        >
-          <input
-            value={taskTitle}
-            onChange={(e) => setTaskTitle(e.target.value)}
-            placeholder="What are you working on?"
-            className="flex-1 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none transition focus:border-white/40"
-          />
-          <button
-            type="submit"
-            className="rounded-lg border border-white/15 px-3 py-2 text-sm transition hover:bg-white/10"
-          >
-            Add
-          </button>
-        </form>
-        <ul className="flex flex-col gap-1.5">
-          {tasks
-            .filter((t) => !t.done)
-            .map((t) => (
-              <li
-                key={t.id}
-                className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm transition ${
-                  selectedTask === t.id
-                    ? "border-[var(--focus)]/60 bg-white/5"
-                    : "border-white/10"
-                }`}
-              >
-                <button
-                  onClick={() => completeTask(t.id)}
-                  className="h-4 w-4 rounded-full border border-white/40 transition hover:bg-white/20"
-                  aria-label="Complete task"
-                />
-                <button
-                  onClick={() => setSelectedTask(t.id)}
-                  className="flex-1 text-left"
-                >
-                  {t.title}
-                </button>
-                <span style={{ color: "var(--muted)" }}>
-                  {t.spentBlocks}
-                  {t.estimateBlocks ? `/${t.estimateBlocks}` : ""} ▮
-                </span>
-              </li>
-            ))}
-          {tasks.filter((t) => !t.done).length === 0 && (
-            <li className="text-sm" style={{ color: "var(--muted)" }}>
-              No tasks yet.
-            </li>
+      {/* Active panel (bottom-left, Flocus-style) */}
+      {panel && (
+        <div className="fixed bottom-6 left-6 z-20 max-w-[calc(100vw-3rem)]">
+          {panel === "voice" && <VoicePanel />}
+          {panel === "tasks" && (
+            <TasksPanel selectedTask={selectedTask} setSelectedTask={setSelectedTask} />
           )}
-        </ul>
-      </section>
+          {panel === "settings" && <SettingsPanel />}
+        </div>
+      )}
 
-      <footer className="pt-2 text-xs" style={{ color: "var(--muted)" }}>
-        heykai.vercel.app
-      </footer>
+      <Dock active={panel} onSelect={setPanel} onFullscreen={fullscreen} />
     </main>
-  );
-}
-
-function Toggle({
-  label,
-  on,
-  onClick,
-  title,
-}: {
-  label: string;
-  on: boolean;
-  onClick: () => void;
-  title?: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      title={title}
-      className="rounded-full border px-3 py-1.5 transition"
-      style={
-        on
-          ? {
-              borderColor: "rgba(251,122,142,0.6)",
-              background: "rgba(251,122,142,0.12)",
-              color: "var(--focus)",
-            }
-          : { borderColor: "rgba(255,255,255,0.15)", opacity: 0.65 }
-      }
-    >
-      {on ? "● " : "○ "}
-      {label}
-    </button>
   );
 }

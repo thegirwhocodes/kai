@@ -1,29 +1,23 @@
 @import "tailwindcss";
 
-/* Kai's look: a calm, dreamy dusk — inspired by aesthetic focus dashboards
-   (Flocus et al.). Fixed dark scene rather than following system theme, so the
-   ambience is consistent. */
+/* Kai — calm, dreamy, "aesthetic Pinterest" focus space. Full-screen
+   background, soft glass controls, clean Poppins type. */
 
 :root {
-  --foreground: #f4f1ee;
-  --muted: rgba(244, 241, 238, 0.62);
-
-  --focus: #fb7a8e; /* warm rose */
-  --break: #6fe3c8; /* soft mint */
-  --long: #b6a6ff; /* lavender */
-
-  --glass-bg: rgba(255, 255, 255, 0.06);
-  --glass-brd: rgba(255, 255, 255, 0.12);
-
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --foreground: #f6f3ef;
+  --muted: rgba(246, 243, 239, 0.66);
+  --focus: #fb7a8e;
+  --break: #6fe3c8;
+  --long: #b6a6ff;
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-brd: rgba(255, 255, 255, 0.16);
+  --font-sans: var(--font-poppins);
 }
 
 @theme inline {
   --color-background: #1a1530;
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-poppins);
 }
 
 html,
@@ -33,108 +27,122 @@ body {
 
 body {
   color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
-  background:
-    radial-gradient(
-      1200px 800px at 15% -10%,
-      rgba(255, 154, 158, 0.28),
-      transparent 55%
-    ),
-    radial-gradient(
-      1000px 700px at 110% 10%,
-      rgba(140, 120, 255, 0.3),
-      transparent 55%
-    ),
-    radial-gradient(
-      900px 900px at 50% 120%,
-      rgba(110, 227, 200, 0.16),
-      transparent 55%
-    ),
-    linear-gradient(160deg, #241a3e 0%, #1a1530 45%, #120f24 100%);
-  background-attachment: fixed;
+  font-family: var(--font-poppins), system-ui, sans-serif;
+  background: #15101f;
+  letter-spacing: -0.01em;
 }
 
-/* Slow, dreamy drift on the colored glows. */
-body::before {
-  content: "";
+/* Full-screen background layer (set via inline style on .scene-bg). */
+.scene-bg {
   position: fixed;
-  inset: -20%;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(
-      600px 600px at 30% 30%,
-      rgba(255, 122, 142, 0.12),
-      transparent 60%
-    ),
-    radial-gradient(
-      700px 700px at 70% 60%,
-      rgba(182, 166, 255, 0.12),
-      transparent 60%
-    );
-  animation: drift 22s ease-in-out infinite alternate;
+  inset: 0;
+  z-index: -2;
+  background-size: cover;
+  background-position: center;
+  transition: opacity 0.8s ease;
 }
-
-@keyframes drift {
-  from {
-    transform: translate3d(-3%, -2%, 0) scale(1);
-  }
-  to {
-    transform: translate3d(3%, 3%, 0) scale(1.08);
-  }
+/* Legibility veil over busy photo backgrounds. */
+.scene-veil {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.28) 0%,
+    rgba(0, 0, 0, 0.12) 30%,
+    rgba(0, 0, 0, 0.34) 100%
+  );
+  pointer-events: none;
 }
 
 /* Frosted glass surface. */
 .glass {
   background: var(--glass-bg);
   border: 1px solid var(--glass-brd);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
   box-shadow:
-    0 10px 40px rgba(0, 0, 0, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    0 12px 50px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-/* Buttons */
-.btn-primary {
+/* Round glass dock buttons (bottom-right). */
+.dock-btn {
+  display: grid;
+  place-items: center;
+  height: 2.75rem;
+  width: 2.75rem;
   border-radius: 9999px;
-  padding: 0.65rem 1.5rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #1a1530;
-  background: linear-gradient(135deg, #ffb199, #fb7a8e);
-  box-shadow: 0 8px 24px rgba(251, 122, 142, 0.35);
+  font-size: 1.05rem;
+  color: var(--foreground);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   transition:
     transform 0.15s ease,
-    box-shadow 0.15s ease,
+    background 0.15s ease;
+}
+.dock-btn:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.16);
+}
+.dock-btn[data-active="true"] {
+  background: linear-gradient(135deg, #ffb199, #fb7a8e);
+  color: #1a1530;
+  border-color: transparent;
+}
+
+.btn-primary {
+  border-radius: 9999px;
+  padding: 0.6rem 1.6rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #1a1530;
+  background: linear-gradient(135deg, #ffd9c2, #fb7a8e);
+  box-shadow: 0 8px 26px rgba(251, 122, 142, 0.4);
+  transition:
+    transform 0.15s ease,
     filter 0.15s ease;
 }
 .btn-primary:hover {
   transform: translateY(-1px);
   filter: brightness(1.05);
-  box-shadow: 0 12px 30px rgba(251, 122, 142, 0.45);
 }
-
 .btn-ghost {
   border-radius: 9999px;
-  padding: 0.65rem 1.5rem;
-  font-size: 0.875rem;
+  padding: 0.6rem 1.4rem;
+  font-size: 0.9rem;
   font-weight: 500;
   color: var(--foreground);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   backdrop-filter: blur(10px);
-  transition:
-    background 0.15s ease,
-    border-color 0.15s ease;
+  transition: background 0.15s ease;
 }
 .btn-ghost:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* Tabular clean numerals for the big timer. */
+.clock-num {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+  text-shadow: 0 2px 30px rgba(0, 0, 0, 0.25);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body::before {
-    animation: none;
+  * {
+    animation: none !important;
   }
 }
