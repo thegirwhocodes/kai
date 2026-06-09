@@ -60,16 +60,19 @@ export async function runUserTurn(
 
     if (!resp.toolCalls?.length) break;
 
-    // Execute each tool against the store and send results back.
-    const toolResults: ContentBlock[] = resp.toolCalls.map((call) => {
-      let content: string;
-      try {
-        content = executeToolCall(call);
-      } catch (e) {
-        content = `Error: ${e instanceof Error ? e.message : "tool failed"}`;
-      }
-      return { type: "tool_result", tool_use_id: call.id, content };
-    });
+    // Execute each tool (store mutations are sync; calendar/etc. are async)
+    // and send results back.
+    const toolResults: ContentBlock[] = await Promise.all(
+      resp.toolCalls.map(async (call) => {
+        let content: string;
+        try {
+          content = await executeToolCall(call);
+        } catch (e) {
+          content = `Error: ${e instanceof Error ? e.message : "tool failed"}`;
+        }
+        return { type: "tool_result", tool_use_id: call.id, content };
+      }),
+    );
     messages.push({ role: "user", content: toolResults });
   }
 

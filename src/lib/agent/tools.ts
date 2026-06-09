@@ -83,6 +83,37 @@ export const AGENT_TOOLS: Anthropic.Tool[] = [
       required: ["taskId"],
     },
   },
+  {
+    name: "get_schedule",
+    description:
+      "Read the user's Google Calendar between two ISO datetimes and get the free gaps. Use this to see what they have on before scheduling focus time. Returns busy events and free slots.",
+    input_schema: {
+      type: "object",
+      properties: {
+        timeMin: { type: "string", description: "ISO start of the window." },
+        timeMax: { type: "string", description: "ISO end of the window." },
+        minMinutes: {
+          type: "integer",
+          description: "Minimum length (minutes) for a usable free slot. Default 25.",
+        },
+      },
+      required: ["timeMin", "timeMax"],
+    },
+  },
+  {
+    name: "schedule_event",
+    description:
+      "Create an event on the user's Google Calendar — e.g. a focus block — at a specific time. Times are ISO datetimes with timezone offset.",
+    input_schema: {
+      type: "object",
+      properties: {
+        summary: { type: "string", description: "Event title, e.g. 'Focus: grant draft'." },
+        start: { type: "string", description: "ISO start datetime." },
+        end: { type: "string", description: "ISO end datetime." },
+      },
+      required: ["summary", "start", "end"],
+    },
+  },
 ];
 
 export const AGENT_TOOL_NAMES = new Set(AGENT_TOOLS.map((t) => t.name));

@@ -13,7 +13,13 @@ export interface ToolCall {
   input: Record<string, unknown>;
 }
 
-export function executeToolCall(call: ToolCall): string {
+// Calendar tools talk to the server (which holds the Google secret); the rest
+// are local store mutations. Async so calendar tools can await the network.
+export async function executeToolCall(call: ToolCall): Promise<string> {
+  if (call.name === "get_schedule" || call.name === "schedule_event") {
+    return executeCalendarTool(call);
+  }
+
   const s = useAgentStore.getState();
   const { input } = call;
 
@@ -81,6 +87,66 @@ export function executeToolCall(call: ToolCall): string {
   }
 }
 
+async function executeCalendarTool(call: ToolCall): Promise<string> {
+  const { input } = call;
+  const action = call.name === "get_schedule" ? "free" : "schedule";
+  const payload =
+    action === "free"
+      ? {
+          action,
+          timeMin: input.timeMin,
+          timeMax: input.timeMax,
+          minMinutes: input.minMinutes ?? 25,
+        }
+      : {
+          action,
+          summary: input.summary,
+          start: input.start,
+          end: input.end,
+        };
+
+  try {
+    const res = await fetch("/api/calendar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (res.status === 503 || data.error === "calendar_not_connected") {
+      return "Calendar isn't connected yet — tell the user to connect Google Calendar in settings.";
+    }
+    if (!res.ok) return `Calendar error: ${data.error ?? res.status}`;
+
+    if (action === "free") {
+      const busy = (data.busy ?? [])
+        .map((e: { summary: string; start: string; end: string }) =>
+          `${e.summary} (${fmt(e.start)}–${fmt(e.end)})`,
+        )
+        .join("; ");
+      const slots = (data.slots ?? [])
+        .map((s: { start: string; end: string }) => `${fmt(s.start)}–${fmt(s.end)}`)
+        .join("; ");
+      return `Busy: ${busy || "nothing"}. Free slots: ${slots || "none in that window"}.`;
+    }
+    return `Scheduled "${data.created?.summary}" at ${fmt(data.created?.start)}.`;
+  } catch (e) {
+    return `Calendar request failed: ${e instanceof Error ? e.message : "network error"}`;
+  }
+}
+
+function fmt(iso?: string): string {
+  if (!iso) return "?";
+  try {
+    return new Date(iso).toLocaleString(undefined, {
+      weekday: "short",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+}
+
 /** Snapshot of live state to send the model so it never asks what it can see. */
 export function buildStateSnapshot() {
   const s = useAgentStore.getState();
@@ -91,7 +157,15 @@ export function buildStateSnapshot() {
     if (b.kind === "long_break" && b.status === "completed") break;
     if (b.kind === "focus" && b.status === "completed") streak++;
   }
+  let timezone: string | undefined;
+  try {
+    timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    timezone = undefined;
+  }
   return {
+    nowISO: new Date().toISOString(),
+    timezone,
     activeKind: s.activeBlock?.kind,
     activeStatus: s.activeBlock?.status,
     remainingSec: s.remainingSec,

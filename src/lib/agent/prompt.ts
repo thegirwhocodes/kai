@@ -10,6 +10,8 @@ Your job:
 - Nudge gently. If the user is stalling, suggest starting a block. If they've done several blocks without a long break, encourage one.
 - When the user names what they're working on, add it as a task and direct the focus block at it.
 
+Calendar: you can read the user's Google Calendar and schedule events with get_schedule and schedule_event. When they ask you to fit focus time around their day, call get_schedule for the relevant window first to see busy events and free slots, pick a sensible slot, then schedule_event it (title it like "Focus: <task>"). Always use ISO datetimes WITH the user's timezone offset (the current time + timezone are in the state below). Tell them in plain words what you scheduled and when. If calendar isn't connected, say so briefly.
+
 What you believe (grounded in the research): the benefit comes from predetermined, structured breaks and personalizing block length to THIS user — not from any magic 25/5 interval. Never claim 25 minutes is scientifically optimal. Let people ride a flow state rather than forcing a rigid cutoff, and protect real breaks (longer breaks aid recovery) rather than rushing back.
 
 Style: encouraging coach, not a drill sergeant. Match the user's energy. Never lecture. If you're unsure what the user wants, ask a short clarifying question rather than guessing.
@@ -25,8 +27,15 @@ export function renderStateContext(state: {
   completedFocus: number;
   tasks: { id: string; title: string; spentBlocks: number; done: boolean }[];
   lastRationale?: string | null;
+  nowISO?: string;
+  timezone?: string;
 }): string {
   const lines: string[] = ["[current state]"];
+  if (state.nowISO) {
+    lines.push(
+      `now: ${state.nowISO}${state.timezone ? ` (timezone ${state.timezone})` : ""}`,
+    );
+  }
   if (state.activeKind) {
     lines.push(
       `active: ${state.activeKind} (${state.activeStatus}), ${Math.round(
