@@ -114,6 +114,28 @@ export const AGENT_TOOLS: Anthropic.Tool[] = [
       required: ["summary", "start", "end"],
     },
   },
+  {
+    name: "play_music",
+    description:
+      "Play music on the user's Spotify. IMPORTANT: by default this searches ONLY the user's own library (saved tracks). If the song isn't in their library, it returns notInLibrary WITHOUT playing — you must then ASK the user whether to search the wider Spotify catalog, and only if they say yes, call again with allowCatalog=true.",
+    input_schema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "What to play — song and/or artist." },
+        allowCatalog: {
+          type: "boolean",
+          description:
+            "Only set true AFTER the user has confirmed they want a catalog (non-library) search.",
+        },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "pause_music",
+    description: "Pause Spotify playback.",
+    input_schema: { type: "object", properties: {} },
+  },
 ];
 
 export const AGENT_TOOL_NAMES = new Set(AGENT_TOOLS.map((t) => t.name));

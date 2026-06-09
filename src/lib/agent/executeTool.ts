@@ -19,6 +19,9 @@ export async function executeToolCall(call: ToolCall): Promise<string> {
   if (call.name === "get_schedule" || call.name === "schedule_event") {
     return executeCalendarTool(call);
   }
+  if (call.name === "play_music" || call.name === "pause_music") {
+    return executeSpotifyTool(call);
+  }
 
   const s = useAgentStore.getState();
   const { input } = call;
@@ -131,6 +134,41 @@ async function executeCalendarTool(call: ToolCall): Promise<string> {
     return `Scheduled "${data.created?.summary}" at ${fmt(data.created?.start)}.`;
   } catch (e) {
     return `Calendar request failed: ${e instanceof Error ? e.message : "network error"}`;
+  }
+}
+
+async function executeSpotifyTool(call: ToolCall): Promise<string> {
+  const { input } = call;
+  const payload =
+    call.name === "pause_music"
+      ? { action: "pause" }
+      : {
+          action: "play",
+          query: input.query,
+          allowCatalog: input.allowCatalog === true,
+        };
+  try {
+    const res = await fetch("/api/spotify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (res.status === 503 || data.error === "spotify_not_connected") {
+      return "Spotify isn't connected yet.";
+    }
+    if (call.name === "pause_music") return "Paused Spotify.";
+    if (data.notInLibrary)
+      return `"${data.query}" isn't in the user's library. ASK them if you should play it from the Spotify catalog instead — do not play it yet.`;
+    if (data.notFound) return `Couldn't find "${data.query}" anywhere on Spotify.`;
+    if (data.noActiveDevice)
+      return `Found "${data.track?.name}" but there's no active Spotify device. Tell the user to open Spotify on a device (their devices: ${(data.devices ?? []).join(", ")}).`;
+    if (data.played)
+      return `Now playing "${data.played.name}" by ${data.played.artists} (from ${data.source === "library" ? "their library" : "the Spotify catalog"}).`;
+    if (!res.ok) return `Spotify error: ${data.error ?? res.status}`;
+    return "Done.";
+  } catch (e) {
+    return `Spotify request failed: ${e instanceof Error ? e.message : "network error"}`;
   }
 }
 
