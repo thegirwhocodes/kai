@@ -1,38 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { useVoiceAgent } from "@/lib/voice/useVoiceAgent";
+import { useConversation } from "@/lib/voice/useConversation";
 
 export function VoicePanel() {
-  const {
-    supported,
-    listening,
-    alwaysOn,
-    awake,
-    thinking,
-    speaking,
-    interim,
-    log,
-    startListening,
-    stopListening,
-    toggleAlwaysOn,
-    sendText,
-  } = useVoiceAgent();
+  const { active, phase, level, log, start, stop, sendText } = useConversation();
   const [text, setText] = useState("");
 
-  const status = thinking
-    ? "Thinking…"
-    : speaking
-      ? "Speaking…"
-      : awake
-        ? "Listening…"
-        : alwaysOn
-          ? "Say “Hey Kai”"
-          : listening
-            ? "Listening…"
-            : "Talk to Kai";
-
-  const busy = awake || thinking || speaking || (listening && !alwaysOn);
+  const status =
+    phase === "thinking"
+      ? "Thinking…"
+      : phase === "speaking"
+        ? "Kai is talking…"
+        : phase === "listening"
+          ? "Listening — just talk"
+          : "Tap to start a conversation";
 
   return (
     <section className="glass w-full max-w-md rounded-2xl p-4">
@@ -42,7 +24,7 @@ export function VoicePanel() {
         </h2>
         <span
           className="text-xs"
-          style={{ color: busy ? "var(--focus)" : "var(--muted)" }}
+          style={{ color: active ? "var(--focus)" : "var(--muted)" }}
         >
           {status}
         </span>
@@ -74,91 +56,68 @@ export function VoicePanel() {
         </div>
       )}
 
-      {interim && (
-        <p className="mb-2 text-right text-sm italic opacity-50">{interim}…</p>
-      )}
-
-      {/* Mic + always-on */}
-      <div className="flex items-center gap-2">
-        {supported.stt ? (
-          <>
-            {/* Push-to-talk (one command) — hidden while always-on is active */}
-            {!alwaysOn && (
-              <button
-                onClick={listening ? stopListening : startListening}
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg transition ${
-                  listening
-                    ? "animate-pulse text-[#1a1530]"
-                    : "border border-white/20 hover:bg-white/10"
-                }`}
-                style={
-                  listening
-                    ? { background: "linear-gradient(135deg,#ffb199,#fb7a8e)" }
-                    : undefined
-                }
-                aria-label={listening ? "Stop listening" : "Start listening"}
-              >
-                {listening ? "■" : "🎤"}
-              </button>
-            )}
-            {/* Always-on "Hey Kai" toggle */}
-            <button
-              onClick={toggleAlwaysOn}
-              className={`flex h-11 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition ${
-                awake ? "animate-pulse" : ""
-              }`}
-              style={
-                alwaysOn
-                  ? {
-                      background: "linear-gradient(135deg,#ffb199,#fb7a8e)",
-                      color: "#1a1530",
-                    }
-                  : {
-                      border: "1px solid rgba(255,255,255,0.2)",
-                      color: "var(--foreground)",
-                    }
-              }
-              title="Hands-free: grant mic once, then just say “Hey Kai…”"
-            >
-              {alwaysOn ? "👂 Hey Kai · on" : "👂 Hey Kai"}
-            </button>
-          </>
-        ) : null}
-
-        {/* Text fallback — always available */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!text.trim()) return;
-            sendText(text.trim());
-            setText("");
-          }}
-          className="flex flex-1 gap-2"
+      {/* Call control */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={active ? stop : start}
+          className="flex h-12 shrink-0 items-center gap-2 rounded-full px-5 text-sm font-medium transition"
+          style={
+            active
+              ? { background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)" }
+              : { background: "linear-gradient(135deg,#ffb199,#fb7a8e)", color: "#1a1530" }
+          }
         >
-          <input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder={
-              supported.stt ? "…or type to Kai" : "Type to Kai"
-            }
-            className="flex-1 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none transition focus:border-white/40"
-          />
-          <button
-            type="submit"
-            disabled={thinking}
-            className="rounded-lg border border-white/15 px-3 py-2 text-sm transition hover:bg-white/10 disabled:opacity-40"
-          >
-            Send
-          </button>
-        </form>
+          {active ? "■ End" : "🎙 Start conversation"}
+        </button>
+
+        {/* Live mic meter while in a call */}
+        {active && (
+          <div className="flex flex-1 items-center gap-1">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <span
+                key={i}
+                className="h-6 flex-1 rounded-full transition-all"
+                style={{
+                  background:
+                    phase === "listening" && level * 12 > i
+                      ? "var(--focus)"
+                      : "rgba(255,255,255,0.12)",
+                  opacity: phase === "speaking" ? 0.4 : 1,
+                }}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
-      {!supported.stt && (
-        <p className="mt-2 text-xs" style={{ color: "var(--muted)" }}>
-          Voice input needs Chrome or Edge. Typing works everywhere; replies are
-          spoken aloud if your browser supports speech.
-        </p>
-      )}
+      {/* Text fallback — always available */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!text.trim()) return;
+          void sendText(text.trim());
+          setText("");
+        }}
+        className="mt-3 flex gap-2"
+      >
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="…or type to Kai"
+          className="flex-1 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none transition focus:border-white/40"
+        />
+        <button
+          type="submit"
+          className="rounded-lg border border-white/15 px-3 py-2 text-sm transition hover:bg-white/10"
+        >
+          Send
+        </button>
+      </form>
+
+      <p className="mt-2 text-xs" style={{ color: "var(--muted)" }}>
+        Start a conversation and just talk — no wake word. Kai listens, you pause,
+        she answers. Works in Chrome, Edge, and Safari.
+      </p>
     </section>
   );
 }
