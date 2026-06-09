@@ -7,12 +7,15 @@ export function VoicePanel() {
   const {
     supported,
     listening,
+    alwaysOn,
+    awake,
     thinking,
     speaking,
     interim,
     log,
     startListening,
     stopListening,
+    toggleAlwaysOn,
     sendText,
   } = useVoiceAgent();
   const [text, setText] = useState("");
@@ -21,11 +24,15 @@ export function VoicePanel() {
     ? "Thinking…"
     : speaking
       ? "Speaking…"
-      : listening
+      : awake
         ? "Listening…"
-        : "Talk to your coach";
+        : alwaysOn
+          ? "Say “Hey Kai”"
+          : listening
+            ? "Listening…"
+            : "Talk to Kai";
 
-  const busy = listening || thinking || speaking;
+  const busy = awake || thinking || speaking || (listening && !alwaysOn);
 
   return (
     <section className="glass w-full max-w-md rounded-2xl p-4">
@@ -71,25 +78,51 @@ export function VoicePanel() {
         <p className="mb-2 text-right text-sm italic opacity-50">{interim}…</p>
       )}
 
-      {/* Mic */}
+      {/* Mic + always-on */}
       <div className="flex items-center gap-2">
         {supported.stt ? (
-          <button
-            onClick={listening ? stopListening : startListening}
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg transition ${
-              listening
-                ? "animate-pulse text-[#1a1530]"
-                : "border border-white/20 hover:bg-white/10"
-            }`}
-            style={
-              listening
-                ? { background: "linear-gradient(135deg,#ffb199,#fb7a8e)" }
-                : undefined
-            }
-            aria-label={listening ? "Stop listening" : "Start listening"}
-          >
-            {listening ? "■" : "🎤"}
-          </button>
+          <>
+            {/* Push-to-talk (one command) — hidden while always-on is active */}
+            {!alwaysOn && (
+              <button
+                onClick={listening ? stopListening : startListening}
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg transition ${
+                  listening
+                    ? "animate-pulse text-[#1a1530]"
+                    : "border border-white/20 hover:bg-white/10"
+                }`}
+                style={
+                  listening
+                    ? { background: "linear-gradient(135deg,#ffb199,#fb7a8e)" }
+                    : undefined
+                }
+                aria-label={listening ? "Stop listening" : "Start listening"}
+              >
+                {listening ? "■" : "🎤"}
+              </button>
+            )}
+            {/* Always-on "Hey Kai" toggle */}
+            <button
+              onClick={toggleAlwaysOn}
+              className={`flex h-11 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition ${
+                awake ? "animate-pulse" : ""
+              }`}
+              style={
+                alwaysOn
+                  ? {
+                      background: "linear-gradient(135deg,#ffb199,#fb7a8e)",
+                      color: "#1a1530",
+                    }
+                  : {
+                      border: "1px solid rgba(255,255,255,0.2)",
+                      color: "var(--foreground)",
+                    }
+              }
+              title="Hands-free: grant mic once, then just say “Hey Kai…”"
+            >
+              {alwaysOn ? "👂 Hey Kai · on" : "👂 Hey Kai"}
+            </button>
+          </>
         ) : null}
 
         {/* Text fallback — always available */}
