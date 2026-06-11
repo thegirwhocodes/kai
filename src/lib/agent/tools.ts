@@ -139,6 +139,37 @@ export const AGENT_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: "search_calendar",
+    description:
+      "Search the user's calendar backward and/or forward around an anchor time. Use this when the user asks what happened last week/month, what is coming up, or wants calendar context across time.",
+    input_schema: {
+      type: "object",
+      properties: {
+        anchorISO: {
+          type: "string",
+          description:
+            "Optional ISO anchor datetime. Defaults to now from current state.",
+        },
+        pastDays: {
+          type: "integer",
+          description: "Days to look backward from anchor. Default 14.",
+        },
+        futureDays: {
+          type: "integer",
+          description: "Days to look forward from anchor. Default 30.",
+        },
+        query: {
+          type: "string",
+          description: "Optional summary text filter.",
+        },
+        maxResults: {
+          type: "integer",
+          description: "Maximum events to return. Default 50.",
+        },
+      },
+    },
+  },
+  {
     name: "schedule_event",
     description:
       "Create an event on the user's Google Calendar — e.g. a focus block — at a specific time. Times are ISO datetimes with timezone offset.",
@@ -150,6 +181,110 @@ export const AGENT_TOOLS: Anthropic.Tool[] = [
         end: { type: "string", description: "ISO end datetime." },
       },
       required: ["summary", "start", "end"],
+    },
+  },
+  {
+    name: "search_email_history",
+    description:
+      "Search the user's Gmail history with Gmail query syntax. Use this when the user asks about old emails, wants context before editing, or needs to find a thread. Returns ids that can be passed to get_email.",
+    input_schema: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description:
+            "Gmail search query, e.g. 'from:sonia newer_than:1y', 'subject:invoice', or plain keywords.",
+        },
+        maxResults: {
+          type: "integer",
+          description: "Maximum messages to return. Default 10.",
+        },
+        includeBody: {
+          type: "boolean",
+          description:
+            "Whether to include body excerpts. Use false for broad searches, true when editing needs content.",
+        },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "get_email",
+    description:
+      "Fetch one Gmail message by id, including body text by default. Use after search_email_history before drafting or editing a reply.",
+    input_schema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "Gmail message id." },
+        includeBody: { type: "boolean", description: "Default true." },
+      },
+      required: ["id"],
+    },
+  },
+  {
+    name: "create_email_draft",
+    description:
+      "Create a Gmail draft only. Never sends email. Use when the user asks Kai to draft, edit, rewrite, or prepare a reply.",
+    input_schema: {
+      type: "object",
+      properties: {
+        to: { type: "string" },
+        subject: { type: "string" },
+        body: { type: "string" },
+        cc: { type: "string" },
+        bcc: { type: "string" },
+        threadId: {
+          type: "string",
+          description: "Optional Gmail thread id for replies.",
+        },
+        inReplyTo: {
+          type: "string",
+          description: "Optional Message-ID header from the original email.",
+        },
+        references: {
+          type: "string",
+          description: "Optional References header.",
+        },
+      },
+      required: ["to", "subject", "body"],
+    },
+  },
+  {
+    name: "update_email_draft",
+    description:
+      "Update an existing Gmail draft only. Never sends email. Use when the user asks to revise an already-created draft.",
+    input_schema: {
+      type: "object",
+      properties: {
+        draftId: { type: "string" },
+        to: { type: "string" },
+        subject: { type: "string" },
+        body: { type: "string" },
+        cc: { type: "string" },
+        bcc: { type: "string" },
+        threadId: { type: "string" },
+        inReplyTo: { type: "string" },
+        references: { type: "string" },
+      },
+      required: ["draftId", "to", "subject", "body"],
+    },
+  },
+  {
+    name: "web_search",
+    description:
+      "Search the live internet for current facts, docs, people, prices, news, or anything that may have changed. Return concise source-linked results.",
+    input_schema: {
+      type: "object",
+      properties: {
+        query: { type: "string" },
+        maxResults: { type: "integer", description: "Default 5." },
+        domains: {
+          type: "array",
+          items: { type: "string" },
+          description: "Optional domains to restrict results to.",
+        },
+      },
+      required: ["query"],
     },
   },
   {

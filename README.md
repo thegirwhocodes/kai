@@ -17,6 +17,9 @@ Kai is not a 25-minute Pomodoro clone. The research behind the build showed that
 - Starts focus blocks and breaks from the UI or by voice.
 - Uses recent focus ratings, fatigue, streak, time of day, and calendar fit to choose the next block.
 - Explains each timing decision in plain English.
+- Searches calendar history forward and backward so Kai can reason about past and upcoming commitments.
+- Searches Gmail history, fetches individual email context, and creates or edits Gmail drafts without sending them.
+- Searches the live web through a configured search provider, with a limited no-key fallback.
 - Shares one client-side store between the timer UI and the voice agent, so voice commands and clicks operate the same state.
 - Uses a Sabi-style conversational voice loop: tap once, speak naturally, pause, get an answer.
 - Presents the product as a calm visual environment, with painterly backgrounds, a large clock, dock controls, tasks, settings, and voice.
@@ -59,4 +62,11 @@ npm install
 npm run dev
 ```
 
-The timer works without an API key. The voice agent needs `ANTHROPIC_API_KEY`; the faster transcription path uses Groq when configured.
+The timer works without an API key. The voice agent needs `ANTHROPIC_API_KEY`; the faster transcription path uses Groq when configured. Calendar uses Google Calendar OAuth envs. Gmail history/drafts need Gmail OAuth scopes. Web search uses Brave, Tavily, Serper, or Google Custom Search when configured, and otherwise falls back to DuckDuckGo Instant Answer.
+
+Useful integration env vars:
+
+- `GOOGLE_CALENDAR_CLIENT_ID`, `GOOGLE_CALENDAR_CLIENT_SECRET`, `GOOGLE_CALENDAR_REFRESH_TOKEN`
+- `GOOGLE_GMAIL_CLIENT_ID`, `GOOGLE_GMAIL_CLIENT_SECRET`, `GOOGLE_GMAIL_REFRESH_TOKEN`
+- Gmail scopes: `gmail.readonly` for history and `gmail.compose` for drafts
+- `BRAVE_SEARCH_API_KEY`, `TAVILY_API_KEY`, `SERPER_API_KEY`, or `GOOGLE_SEARCH_API_KEY` plus `GOOGLE_SEARCH_ENGINE_ID`

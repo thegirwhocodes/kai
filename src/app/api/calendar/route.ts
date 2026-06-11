@@ -37,6 +37,42 @@ export async function POST(req: Request) {
       return NextResponse.json({ events });
     }
 
+    if (action === "search") {
+      const {
+        anchorISO,
+        pastDays,
+        futureDays,
+        query,
+        maxResults,
+      } = body as {
+        anchorISO?: string;
+        pastDays?: number;
+        futureDays?: number;
+        query?: string;
+        maxResults?: number;
+      };
+      const anchor = anchorISO ? new Date(anchorISO) : new Date();
+      if (Number.isNaN(anchor.getTime())) {
+        return NextResponse.json({ error: "invalid_anchor" }, { status: 400 });
+      }
+      const from = new Date(
+        anchor.getTime() - clamp(pastDays ?? 14, 0, 365) * 24 * 60 * 60_000,
+      );
+      const to = new Date(
+        anchor.getTime() + clamp(futureDays ?? 30, 0, 730) * 24 * 60 * 60_000,
+      );
+      const events = await listEvents(from.toISOString(), to.toISOString());
+      const needle = query?.trim().toLowerCase();
+      const filtered = needle
+        ? events.filter((event) => event.summary.toLowerCase().includes(needle))
+        : events;
+      return NextResponse.json({
+        events: filtered.slice(0, clamp(maxResults ?? 50, 1, 100)),
+        timeMin: from.toISOString(),
+        timeMax: to.toISOString(),
+      });
+    }
+
     if (action === "free") {
       const { timeMin, timeMax, minMinutes } = body as {
         timeMin: string;
@@ -66,4 +102,9 @@ export async function POST(req: Request) {
     const message = e instanceof Error ? e.message : "calendar_error";
     return NextResponse.json({ error: message }, { status: 502 });
   }
+}
+
+function clamp(value: number, min: number, max: number): number {
+  if (!Number.isFinite(value)) return min;
+  return Math.max(min, Math.min(max, Math.round(value)));
 }

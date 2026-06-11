@@ -17,8 +17,23 @@ export interface ToolCall {
 // Calendar tools talk to the server (which holds the Google secret); the rest
 // are local store mutations. Async so calendar tools can await the network.
 export async function executeToolCall(call: ToolCall): Promise<string> {
-  if (call.name === "get_schedule" || call.name === "schedule_event") {
+  if (
+    call.name === "get_schedule" ||
+    call.name === "search_calendar" ||
+    call.name === "schedule_event"
+  ) {
     return executeCalendarTool(call);
+  }
+  if (
+    call.name === "search_email_history" ||
+    call.name === "get_email" ||
+    call.name === "create_email_draft" ||
+    call.name === "update_email_draft"
+  ) {
+    return executeEmailTool(call);
+  }
+  if (call.name === "web_search") {
+    return executeWebSearchTool(call);
   }
   if (call.name === "play_music" || call.name === "pause_music") {
     return executeSpotifyTool(call);
@@ -147,7 +162,12 @@ async function executeRecommendationTool(call: ToolCall): Promise<string> {
 
 async function executeCalendarTool(call: ToolCall): Promise<string> {
   const { input } = call;
-  const action = call.name === "get_schedule" ? "free" : "schedule";
+  const action =
+    call.name === "get_schedule"
+      ? "free"
+      : call.name === "search_calendar"
+        ? "search"
+        : "schedule";
   const payload =
     action === "free"
       ? {
@@ -156,6 +176,15 @@ async function executeCalendarTool(call: ToolCall): Promise<string> {
           timeMax: input.timeMax,
           minMinutes: input.minMinutes ?? 25,
         }
+      : action === "search"
+        ? {
+            action,
+            anchorISO: input.anchorISO,
+            pastDays: input.pastDays,
+            futureDays: input.futureDays,
+            query: input.query,
+            maxResults: input.maxResults,
+          }
       : {
           action,
           summary: input.summary,
@@ -186,9 +215,97 @@ async function executeCalendarTool(call: ToolCall): Promise<string> {
         .join("; ");
       return `Busy: ${busy || "nothing"}. Free slots: ${slots || "none in that window"}.`;
     }
+    if (action === "search") {
+      const events = (data.events ?? [])
+        .map((e: { id?: string; summary: string; start: string; end: string }) =>
+          `${e.summary} (${fmt(e.start)}-${fmt(e.end)}${e.id ? `, id ${e.id}` : ""})`,
+        )
+        .join("; ");
+      return `Calendar window ${fmt(data.timeMin)} to ${fmt(data.timeMax)}. Events: ${events || "none"}.`;
+    }
     return `Scheduled "${data.created?.summary}" at ${fmt(data.created?.start)}.`;
   } catch (e) {
     return `Calendar request failed: ${e instanceof Error ? e.message : "network error"}`;
+  }
+}
+
+async function executeEmailTool(call: ToolCall): Promise<string> {
+  const { input } = call;
+  const action =
+    call.name === "search_email_history"
+      ? "search"
+      : call.name === "get_email"
+        ? "get"
+        : call.name === "create_email_draft"
+          ? "create_draft"
+          : "update_draft";
+  const payload = { action, ...input };
+  try {
+    const res = await fetch("/api/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (res.status === 503 || data.error === "gmail_not_connected") {
+      return "Gmail isn't connected yet.";
+    }
+    if (!res.ok) return `Gmail error: ${data.error ?? res.status}`;
+
+    if (action === "search") {
+      const emails = (data.emails ?? [])
+        .map(
+          (e: {
+            id: string;
+            threadId?: string;
+            from: string;
+            subject: string;
+            date?: string;
+            snippet?: string;
+            body?: string;
+          }) =>
+            `id ${e.id}${e.threadId ? ` thread ${e.threadId}` : ""}: ${e.subject} from ${e.from}${e.date ? ` on ${e.date}` : ""}. ${excerpt(e.body ?? e.snippet ?? "", 420)}`,
+        )
+        .join("\n");
+      return emails || "No matching emails found.";
+    }
+
+    if (action === "get") {
+      const e = data.email;
+      return `Email id ${e.id}${e.threadId ? ` thread ${e.threadId}` : ""}: "${e.subject}" from ${e.from} to ${e.to ?? "unknown"}${e.date ? ` on ${e.date}` : ""}. Body: ${excerpt(e.body ?? e.snippet ?? "", 1800)}${e.messageId ? ` Message-ID: ${e.messageId}` : ""}`;
+    }
+
+    const draft = data.draft;
+    return `Draft saved in Gmail. Draft id ${draft.id}${draft.threadId ? `, thread ${draft.threadId}` : ""}. It has not been sent.`;
+  } catch (e) {
+    return `Gmail request failed: ${e instanceof Error ? e.message : "network error"}`;
+  }
+}
+
+async function executeWebSearchTool(call: ToolCall): Promise<string> {
+  const { input } = call;
+  try {
+    const res = await fetch("/api/web-search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: input.query,
+        maxResults: input.maxResults,
+        domains: input.domains,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) return `Web search error: ${data.error ?? res.status}`;
+    const results = (data.results ?? [])
+      .map(
+        (r: { title: string; url: string; snippet: string; source: string }, i: number) =>
+          `${i + 1}. ${r.title} (${r.source}) ${r.url} - ${excerpt(r.snippet, 360)}`,
+      )
+      .join("\n");
+    const answer = data.answer ? `Answer: ${data.answer}\n` : "";
+    return `${answer}Provider: ${data.provider}. Results:\n${results || "No results."}`;
+  } catch (e) {
+    return `Web search failed: ${e instanceof Error ? e.message : "network error"}`;
   }
 }
 
@@ -238,6 +355,12 @@ function fmt(iso?: string): string {
   } catch {
     return iso;
   }
+}
+
+function excerpt(text: string, max: number): string {
+  const clean = text.replace(/\s+/g, " ").trim();
+  if (clean.length <= max) return clean;
+  return `${clean.slice(0, max - 15).trim()}...`;
 }
 
 /** Snapshot of live state to send the model so it never asks what it can see. */
