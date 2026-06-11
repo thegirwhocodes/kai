@@ -68,11 +68,10 @@ export function decideFocusBlock(
   let sec = ctx.baselineFocusSec;
   const reasons: string[] = [];
 
-  // 1) Circadian shaping — a gentle personalized guess, easily overridden.
+  // 1) Circadian shaping — a silent, gentle guess. We do not narrate this as
+  //    "your energy tends..." unless the user's own ratings actually show it.
   const circ = circadianFactor(ctx.hourOfDay);
   sec *= circ;
-  if (circ > 1.05) reasons.push("you usually have good energy around now");
-  else if (circ < 0.95) reasons.push("energy tends to dip around now");
 
   // 2) Recent focus quality — the strongest personal signal. Lengthen when
   //    you're in the zone (riding flow beats forcing a rigid cutoff), shorten
@@ -84,7 +83,7 @@ export function decideFocusBlock(
       reasons.push("your last blocks were deep focus");
     } else if (score <= 2.3) {
       sec *= 0.75;
-      reasons.push("focus has been choppy, so a shorter sprint");
+      reasons.push("your recent ratings show your energy dipping, so a shorter sprint");
     }
   }
 
