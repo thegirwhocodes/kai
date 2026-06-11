@@ -18,7 +18,11 @@ const QUOTES = [
 export function Quote() {
   const [q, setQ] = useState("");
   useEffect(() => {
-    setQ(QUOTES[new Date().getHours() % QUOTES.length]);
+    const id = window.setTimeout(
+      () => setQ(QUOTES[new Date().getHours() % QUOTES.length]),
+      0,
+    );
+    return () => window.clearTimeout(id);
   }, []);
   if (!q) return null;
   return (

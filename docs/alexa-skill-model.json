@@ -1,0 +1,76 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "kai focus",
+      "intents": [
+        {
+          "name": "NextSessionIntent",
+          "slots": [],
+          "samples": [
+            "what should I focus on next",
+            "what should I do next",
+            "pick my next pomodoro",
+            "suggest my next focus session",
+            "what is the next right block"
+          ]
+        },
+        {
+          "name": "PlanDayIntent",
+          "slots": [],
+          "samples": [
+            "plan my day",
+            "organize my day",
+            "help me plan today",
+            "what does my day look like",
+            "fit focus around my calendar"
+          ]
+        },
+        {
+          "name": "StartFocusIntent",
+          "slots": [
+            {
+              "name": "task",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "start a focus session",
+            "start my next session",
+            "start a pomodoro",
+            "focus on {task}",
+            "start a focus session for {task}",
+            "help me work on {task}"
+          ]
+        },
+        {
+          "name": "AddTaskIntent",
+          "slots": [
+            {
+              "name": "task",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "add {task}",
+            "add task {task}",
+            "remember that I need to {task}",
+            "put {task} on my list"
+          ]
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        }
+      ],
+      "types": []
+    }
+  }
+}

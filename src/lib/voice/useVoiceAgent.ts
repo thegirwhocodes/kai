@@ -61,15 +61,18 @@ export function useVoiceAgent() {
   const speakingRef = useRef(false);
 
   useEffect(() => {
-    const w = window as unknown as {
-      SpeechRecognition?: SpeechRecognitionCtor;
-      webkitSpeechRecognition?: SpeechRecognitionCtor;
-    };
-    const Ctor = w.SpeechRecognition || w.webkitSpeechRecognition;
-    setSupported({
-      stt: !!Ctor,
-      tts: typeof window !== "undefined" && "speechSynthesis" in window,
-    });
+    const id = window.setTimeout(() => {
+      const w = window as unknown as {
+        SpeechRecognition?: SpeechRecognitionCtor;
+        webkitSpeechRecognition?: SpeechRecognitionCtor;
+      };
+      const Ctor = w.SpeechRecognition || w.webkitSpeechRecognition;
+      setSupported({
+        stt: !!Ctor,
+        tts: typeof window !== "undefined" && "speechSynthesis" in window,
+      });
+    }, 0);
+    return () => window.clearTimeout(id);
   }, []);
 
   const speak = useCallback(

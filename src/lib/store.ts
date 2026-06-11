@@ -11,8 +11,10 @@ import {
   type AdaptiveContext,
   type AgentSettings,
   type Block,
+  type KaiRecommendation,
   type Session,
   type Task,
+  type TaskPriority,
   DEFAULT_SETTINGS,
 } from "./types";
 
@@ -32,10 +34,19 @@ interface StoreState {
   lastDecisionRationale: string | null;
   /** Last completed focus block awaiting a focus rating (or null). */
   lastCompletedFocusId: string | null;
+  /** Most recent life-aware recommendation from Kai's planner. */
+  latestRecommendation: KaiRecommendation | null;
 
   // --- lifecycle ---
   ensureSession: () => Session;
-  startNextFocus: (taskId?: string) => Block;
+  startNextFocus: (
+    taskId?: string,
+    options?: {
+      minutesUntilNextCommitment?: number;
+      rationalePrefix?: string;
+    },
+  ) => Block;
+  startRecommendedFocus: () => Block | null;
   startBreak: () => Block;
   pause: () => void;
   resume: () => void;
@@ -52,8 +63,15 @@ interface StoreState {
   tick: (deltaSec: number) => void;
 
   // --- tasks ---
-  addTask: (title: string, estimateBlocks?: number) => Task;
+  addTask: (
+    title: string,
+    estimateBlocks?: number,
+    patch?: Partial<
+      Pick<Task, "priority" | "source" | "dueAt" | "sphere" | "notes" | "reason">
+    >,
+  ) => Task;
   completeTask: (id: string) => void;
+  setLatestRecommendation: (recommendation: KaiRecommendation | null) => void;
 
   // --- settings ---
   updateSettings: (patch: Partial<AgentSettings>) => void;
@@ -63,6 +81,7 @@ function buildContext(
   session: Session | null,
   settings: AgentSettings,
   hourOfDay: number,
+  minutesUntilNextCommitment?: number,
 ): AdaptiveContext {
   const blocks = session?.blocks ?? [];
   const recentFocusBlocks = blocks.filter((b) => b.kind === "focus");
@@ -77,6 +96,7 @@ function buildContext(
     recentFocusBlocks,
     focusStreak: streak,
     hourOfDay,
+    minutesUntilNextCommitment,
     baselineFocusSec: settings.baselineFocusSec,
   };
 }
@@ -91,6 +111,7 @@ export const useAgentStore = create<StoreState>()(
       remainingSec: 0,
       lastDecisionRationale: null,
       lastCompletedFocusId: null,
+      latestRecommendation: null,
 
       ensureSession: () => {
         const existing = get().session;
@@ -105,12 +126,20 @@ export const useAgentStore = create<StoreState>()(
         return session;
       },
 
-      startNextFocus: (taskId) => {
+      startNextFocus: (taskId, options) => {
         const session = get().ensureSession();
         const { settings } = get();
         const hour = new Date().getHours();
-        const ctx = buildContext(session, settings, hour);
+        const ctx = buildContext(
+          session,
+          settings,
+          hour,
+          options?.minutesUntilNextCommitment,
+        );
         const decision = decideFocusBlock(ctx, settings);
+        const rationale = options?.rationalePrefix
+          ? `${sentence(options.rationalePrefix)} ${decision.rationale}`
+          : decision.rationale;
         const block: Block = {
           id: uid(),
           kind: "focus",
@@ -126,9 +155,44 @@ export const useAgentStore = create<StoreState>()(
           session: { ...session, blocks, currentBlockIndex: blocks.length - 1 },
           activeBlock: block,
           remainingSec: block.plannedSec,
-          lastDecisionRationale: decision.rationale,
+          lastDecisionRationale: rationale,
         });
         return block;
+      },
+
+      startRecommendedFocus: () => {
+        const recommendation = get().latestRecommendation;
+        if (!recommendation) return null;
+        if (recommendation.mode === "break") return get().startBreak();
+
+        let taskId = recommendation.taskId;
+        const existing = taskId
+          ? get().tasks.find((t) => t.id === taskId && !t.done)
+          : undefined;
+        if (!existing && recommendation.taskTitle) {
+          const normalized = recommendation.taskTitle.trim().toLowerCase();
+          const match = get().tasks.find(
+            (t) => !t.done && t.title.trim().toLowerCase() === normalized,
+          );
+          taskId =
+            match?.id ??
+            get().addTask(recommendation.taskTitle, undefined, {
+              priority: recommendation.taskPriority ?? "medium",
+              source:
+                recommendation.source === "email"
+                  ? "email"
+                  : recommendation.source === "calendar"
+                    ? "calendar"
+                    : "kai",
+              reason: recommendation.reason,
+            }).id;
+        }
+
+        return get().startNextFocus(taskId, {
+          minutesUntilNextCommitment:
+            recommendation.minutesUntilNextCommitment,
+          rationalePrefix: recommendation.reason,
+        });
       },
 
       startBreak: () => {
@@ -244,7 +308,7 @@ export const useAgentStore = create<StoreState>()(
         if (remaining === 0) get().completeActive();
       },
 
-      addTask: (title, estimateBlocks) => {
+      addTask: (title, estimateBlocks, patch) => {
         const task: Task = {
           id: uid(),
           title,
@@ -252,6 +316,12 @@ export const useAgentStore = create<StoreState>()(
           spentBlocks: 0,
           done: false,
           createdAt: Date.now(),
+          priority: normalizePriority(patch?.priority),
+          source: patch?.source ?? "manual",
+          dueAt: patch?.dueAt,
+          sphere: patch?.sphere,
+          notes: patch?.notes,
+          reason: patch?.reason,
         };
         set((s) => ({ tasks: [...s.tasks, task] }));
         return task;
@@ -261,6 +331,9 @@ export const useAgentStore = create<StoreState>()(
         set((s) => ({
           tasks: s.tasks.map((t) => (t.id === id ? { ...t, done: true } : t)),
         })),
+
+      setLatestRecommendation: (latestRecommendation) =>
+        set({ latestRecommendation }),
 
       updateSettings: (patch) =>
         set((s) => ({ settings: { ...s.settings, ...patch } })),
@@ -309,4 +382,23 @@ function patchActive(
         }
       : s.session,
   }));
+}
+
+function normalizePriority(priority?: TaskPriority): TaskPriority | undefined {
+  if (
+    priority === "low" ||
+    priority === "medium" ||
+    priority === "high" ||
+    priority === "urgent"
+  ) {
+    return priority;
+  }
+  return priority == null ? undefined : "medium";
+}
+
+function sentence(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed) return trimmed;
+  const capitalized = trimmed[0].toUpperCase() + trimmed.slice(1);
+  return /[.!?]$/.test(capitalized) ? capitalized : `${capitalized}.`;
 }

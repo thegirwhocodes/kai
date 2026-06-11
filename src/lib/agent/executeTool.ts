@@ -6,6 +6,7 @@
 
 import { useAgentStore } from "@/lib/store";
 import { KIND_LABEL } from "@/lib/format";
+import type { KaiRecommendation, TaskPriority } from "@/lib/types";
 
 export interface ToolCall {
   id: string;
@@ -22,13 +23,24 @@ export async function executeToolCall(call: ToolCall): Promise<string> {
   if (call.name === "play_music" || call.name === "pause_music") {
     return executeSpotifyTool(call);
   }
+  if (
+    call.name === "suggest_next_session" ||
+    call.name === "start_recommended_focus"
+  ) {
+    return executeRecommendationTool(call);
+  }
 
   const s = useAgentStore.getState();
   const { input } = call;
 
   switch (call.name) {
     case "start_focus": {
-      const block = s.startNextFocus(input.taskId as string | undefined);
+      const block = s.startNextFocus(input.taskId as string | undefined, {
+        minutesUntilNextCommitment:
+          input.minutesUntilNextCommitment != null
+            ? Number(input.minutesUntilNextCommitment)
+            : undefined,
+      });
       // Re-read for the freshly-set rationale.
       const rationale = useAgentStore.getState().lastDecisionRationale;
       return `Started a ${Math.round(block.plannedSec / 60)} min focus block. Engine rationale: ${rationale}`;
@@ -75,6 +87,12 @@ export async function executeToolCall(call: ToolCall): Promise<string> {
       const t = s.addTask(
         title,
         input.estimateBlocks != null ? Number(input.estimateBlocks) : undefined,
+        {
+          priority: normalizePriority(input.priority),
+          dueAt: typeof input.dueAt === "string" ? input.dueAt : undefined,
+          sphere: typeof input.sphere === "string" ? input.sphere : undefined,
+          source: "kai",
+        },
       );
       return `Added task "${t.title}" (id ${t.id}).`;
     }
@@ -88,6 +106,43 @@ export async function executeToolCall(call: ToolCall): Promise<string> {
     default:
       return `Unknown tool: ${call.name}`;
   }
+}
+
+async function executeRecommendationTool(call: ToolCall): Promise<string> {
+  const store = useAgentStore.getState();
+  let recommendation = store.latestRecommendation;
+
+  if (call.name === "suggest_next_session" || !recommendation) {
+    const res = await fetch("/api/recommendation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        state: buildStateSnapshot(),
+        horizonHours:
+          call.input.horizonHours != null
+            ? Number(call.input.horizonHours)
+            : undefined,
+        intent: "next_session",
+      }),
+    });
+    const data = (await res.json()) as {
+      recommendation?: KaiRecommendation;
+      error?: string;
+    };
+    if (!res.ok || !data.recommendation) {
+      return `Recommendation failed: ${data.error ?? res.status}`;
+    }
+    recommendation = data.recommendation;
+    useAgentStore.getState().setLatestRecommendation(recommendation);
+  }
+
+  if (call.name === "start_recommended_focus") {
+    const block = useAgentStore.getState().startRecommendedFocus();
+    if (!block) return "There isn't a recommendation to start yet.";
+    return `Started ${Math.round(block.plannedSec / 60)} minutes for "${recommendation.title}". Why: ${recommendation.reason}`;
+  }
+
+  return `Recommended "${recommendation.title}" for ${recommendation.durationMinutes} minutes. Why: ${recommendation.reason}`;
 }
 
 async function executeCalendarTool(call: ToolCall): Promise<string> {
@@ -214,9 +269,32 @@ export function buildStateSnapshot() {
     tasks: s.tasks.map((t) => ({
       id: t.id,
       title: t.title,
+      priority: t.priority,
+      source: t.source,
+      dueAt: t.dueAt,
+      sphere: t.sphere,
       spentBlocks: t.spentBlocks,
+      estimateBlocks: t.estimateBlocks,
       done: t.done,
     })),
+    settings: {
+      baselineFocusSec: s.settings.baselineFocusSec,
+      minFocusSec: s.settings.minFocusSec,
+      maxFocusSec: s.settings.maxFocusSec,
+    },
+    latestRecommendation: s.latestRecommendation,
     lastRationale: s.lastDecisionRationale,
   };
+}
+
+function normalizePriority(input: unknown): TaskPriority | undefined {
+  if (
+    input === "low" ||
+    input === "medium" ||
+    input === "high" ||
+    input === "urgent"
+  ) {
+    return input;
+  }
+  return undefined;
 }

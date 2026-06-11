@@ -9,15 +9,15 @@ export function VoicePanel() {
 
   const status =
     phase === "thinking"
-      ? "Thinking…"
+      ? "Thinking..."
       : phase === "speaking"
-        ? "Kai is talking…"
+        ? "Kai is talking..."
         : phase === "listening"
-          ? "Listening — just talk"
+          ? "Listening"
           : "Tap to start a conversation";
 
   return (
-    <section className="glass w-full max-w-md rounded-2xl p-4">
+    <section className="glass w-full max-w-md rounded-lg p-4">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-medium" style={{ color: "var(--muted)" }}>
           Talk to Kai
@@ -41,7 +41,7 @@ export function VoicePanel() {
               }`}
             >
               <span
-                className="inline-block rounded-2xl px-3 py-1.5"
+                className="inline-block rounded-lg px-3 py-1.5"
                 style={{
                   background:
                     e.who === "you"
@@ -67,7 +67,7 @@ export function VoicePanel() {
               : { background: "linear-gradient(135deg,#ffb199,#fb7a8e)", color: "#1a1530" }
           }
         >
-          {active ? "■ End" : "🎙 Start conversation"}
+          {active ? "End" : "Start conversation"}
         </button>
 
         {/* Live mic meter while in a call */}
@@ -103,7 +103,7 @@ export function VoicePanel() {
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="…or type to Kai"
+          placeholder="Type to Kai"
           className="flex-1 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none transition focus:border-white/40"
         />
         <button
@@ -113,11 +113,6 @@ export function VoicePanel() {
           Send
         </button>
       </form>
-
-      <p className="mt-2 text-xs" style={{ color: "var(--muted)" }}>
-        Start a conversation and just talk — no wake word. Kai listens, you pause,
-        she answers. Works in Chrome, Edge, and Safari.
-      </p>
     </section>
   );
 }

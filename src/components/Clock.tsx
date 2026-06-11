@@ -6,16 +6,19 @@ import { useEffect, useState } from "react";
 export function Clock() {
   const [now, setNow] = useState<Date | null>(null);
   useEffect(() => {
-    setNow(new Date());
+    const first = window.setTimeout(() => setNow(new Date()), 0);
     const id = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(id);
+    return () => {
+      window.clearTimeout(first);
+      clearInterval(id);
+    };
   }, []);
   if (!now) return null;
   let h = now.getHours() % 12;
   if (h === 0) h = 12;
   const m = now.getMinutes().toString().padStart(2, "0");
   return (
-    <span className="clock-num text-[clamp(5rem,18vw,11rem)]">
+    <span className="clock-num text-8xl sm:text-[9rem] lg:text-[11rem]">
       {h}:{m}
     </span>
   );

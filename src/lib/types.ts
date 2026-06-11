@@ -21,6 +21,84 @@ export interface Task {
   spentBlocks: number;
   done: boolean;
   createdAt: number;
+  /** Priority is intentionally human-scale, not a brittle numeric score. */
+  priority?: TaskPriority;
+  /** Where Kai learned about this task. */
+  source?: TaskSource;
+  /** Optional ISO datetime when this task starts mattering. */
+  dueAt?: string;
+  /** Naomi's life/work area this belongs to, e.g. Sabi, school, family. */
+  sphere?: string;
+  notes?: string;
+  /** Why Kai suggested or created it. */
+  reason?: string;
+}
+
+export type TaskPriority = "low" | "medium" | "high" | "urgent";
+
+export type TaskSource = "manual" | "kai" | "calendar" | "email" | "alexa";
+
+export type EmailCategory =
+  | "sabi"
+  | "school"
+  | "family"
+  | "faith"
+  | "kai"
+  | "opportunity"
+  | "admin"
+  | "noise"
+  | "unknown";
+
+export interface EmailSignal {
+  id: string;
+  from: string;
+  subject: string;
+  date?: string;
+  category: EmailCategory;
+  priority: TaskPriority;
+  reason: string;
+}
+
+export interface CalendarSummary {
+  connected: boolean;
+  busyCount: number;
+  nextEvent?: {
+    summary: string;
+    start: string;
+    end: string;
+  };
+  freeSlots: { start: string; end: string }[];
+  error?: string;
+}
+
+export interface KaiRecommendation {
+  id: string;
+  createdAt: number;
+  mode: "focus" | "break" | "admin";
+  title: string;
+  taskTitle?: string;
+  taskId?: string;
+  taskPriority?: TaskPriority;
+  durationMinutes: number;
+  suggestedStartISO: string;
+  suggestedEndISO: string;
+  minutesUntilNextCommitment?: number;
+  reason: string;
+  reasonParts: string[];
+  source: "tasks" | "calendar" | "email" | "priorities" | "recovery";
+  confidence: "low" | "medium" | "high";
+  canStartNow: boolean;
+  emailSignals: EmailSignal[];
+  calendarSummary: CalendarSummary;
+}
+
+export interface KaiCommand {
+  id: string;
+  createdAt: number;
+  type: "show_recommendation" | "start_recommended_focus";
+  source: "alexa" | "api";
+  recommendation: KaiRecommendation;
+  spoken?: string;
 }
 
 export interface Block {

@@ -5,10 +5,13 @@ export const SYSTEM_PROMPT = `You are Kai, a warm, concise focus coach — a voi
 
 Your job:
 - Help the user start focus blocks and breaks, pause/resume, and stay on track.
+- Help organize the user's day like a gentle personal operations layer: use suggest_next_session when they ask what to do next, when they feel scattered, or when calendar/email/priorities matter. Then either ask for consent or call start_recommended_focus if they clearly want to begin.
 - You do NOT pick block lengths yourself — the adaptive engine does, based on time of day, the user's recent focus ratings, and their streak. After starting a block, briefly relay the engine's rationale in your own warm words.
 - After a focus block ends, ask one quick question: how focused were you, 1 to 5? Then record it with rate_focus.
 - Nudge gently. If the user is stalling, suggest starting a block. If they've done several blocks without a long break, encourage one.
 - When the user names what they're working on, add it as a task and direct the focus block at it.
+
+Priorities: Sabi/Education for Equality and urgent family/school commitments should outrank generic opportunities. Emails should be signals, not a second inbox: surface at most one important email-driven next action unless the user explicitly asks to triage more.
 
 Calendar: you can read the user's Google Calendar and schedule events with get_schedule and schedule_event. When they ask you to fit focus time around their day, call get_schedule for the relevant window first to see busy events and free slots, pick a sensible slot, then schedule_event it (title it like "Focus: <task>"). Always use ISO datetimes WITH the user's timezone offset (the current time + timezone are in the state below). Tell them in plain words what you scheduled and when. If calendar isn't connected, say so briefly.
 
@@ -28,6 +31,16 @@ export function renderStateContext(state: {
   focusStreak: number;
   completedFocus: number;
   tasks: { id: string; title: string; spentBlocks: number; done: boolean }[];
+  settings?: {
+    baselineFocusSec?: number;
+    minFocusSec?: number;
+    maxFocusSec?: number;
+  };
+  latestRecommendation?: {
+    title: string;
+    durationMinutes: number;
+    reason: string;
+  } | null;
   lastRationale?: string | null;
   nowISO?: string;
   timezone?: string;
@@ -54,6 +67,11 @@ export function renderStateContext(state: {
     lines.push(
       "open tasks: " +
         open.map((t) => `${t.title} [${t.id}] (${t.spentBlocks} blocks)`).join("; "),
+    );
+  }
+  if (state.latestRecommendation) {
+    lines.push(
+      `latest recommendation: ${state.latestRecommendation.title}, ${state.latestRecommendation.durationMinutes} min (${state.latestRecommendation.reason})`,
     );
   }
   if (state.lastRationale) lines.push(`last engine note: ${state.lastRationale}`);

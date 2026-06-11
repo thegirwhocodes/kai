@@ -9,7 +9,7 @@ export const AGENT_TOOLS: Anthropic.Tool[] = [
   {
     name: "start_focus",
     description:
-      "Begin a focus block. The adaptive engine picks the length; you don't specify it. Optionally target a task by id.",
+      "Begin a focus block. The adaptive engine picks the length; you don't specify it. Optionally target a task by id and pass known calendar space.",
     input_schema: {
       type: "object",
       properties: {
@@ -17,8 +17,33 @@ export const AGENT_TOOLS: Anthropic.Tool[] = [
           type: "string",
           description: "Optional task id to direct this focus block at.",
         },
+        minutesUntilNextCommitment: {
+          type: "integer",
+          description:
+            "Optional minutes until the next calendar commitment if already known.",
+        },
       },
     },
+  },
+  {
+    name: "suggest_next_session",
+    description:
+      "Ask Kai's life planner what the user should work on next. It considers open tasks, Google Calendar availability, Gmail metadata signals, and known priorities, then stores the recommendation for the UI.",
+    input_schema: {
+      type: "object",
+      properties: {
+        horizonHours: {
+          type: "integer",
+          description: "Optional planning window. Default is the next 10 hours.",
+        },
+      },
+    },
+  },
+  {
+    name: "start_recommended_focus",
+    description:
+      "Start the latest recommended session from suggest_next_session. If there is no recommendation yet, get one first.",
+    input_schema: { type: "object", properties: {} },
   },
   {
     name: "start_break",
@@ -69,6 +94,19 @@ export const AGENT_TOOLS: Anthropic.Tool[] = [
         estimateBlocks: {
           type: "integer",
           description: "Optional rough number of focus blocks expected.",
+        },
+        priority: {
+          type: "string",
+          enum: ["low", "medium", "high", "urgent"],
+          description: "Optional priority if the user indicates urgency.",
+        },
+        dueAt: {
+          type: "string",
+          description: "Optional ISO datetime when this task is due.",
+        },
+        sphere: {
+          type: "string",
+          description: "Optional life/work area, e.g. Sabi, school, family.",
         },
       },
       required: ["title"],

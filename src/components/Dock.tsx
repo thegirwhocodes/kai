@@ -1,6 +1,6 @@
 "use client";
 
-export type Panel = "voice" | "tasks" | "settings" | null;
+export type Panel = "voice" | "plan" | "tasks" | "settings" | null;
 
 export function Dock({
   active,
@@ -13,6 +13,7 @@ export function Dock({
 }) {
   const items: { id: Exclude<Panel, null>; icon: string; label: string }[] = [
     { id: "voice", icon: "🎙", label: "Talk to Kai" },
+    { id: "plan", icon: "◇", label: "Plan next" },
     { id: "tasks", icon: "✓", label: "Tasks" },
     { id: "settings", icon: "✦", label: "Customize" },
   ];

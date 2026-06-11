@@ -70,12 +70,12 @@ export function TimerDial({
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span
-          className="text-[0.7rem] font-semibold uppercase tracking-[0.25em]"
+          className="text-[0.7rem] font-semibold uppercase"
           style={{ color }}
         >
           {label}
         </span>
-        <span className="mt-2 font-mono text-7xl font-light tabular-nums tracking-tight">
+        <span className="mt-2 font-mono text-7xl font-light tabular-nums">
           {mmss(remainingSec)}
         </span>
       </div>
