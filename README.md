@@ -1,5 +1,9 @@
 # Kai
 
+<p align="center">
+  <img src="public/backgrounds/ghibli-forest.jpg" alt="Kai focus environment" width="100%" />
+</p>
+
 An adaptive focus coach with a timer, a voice loop, and an engine that changes the session length based on how the user is actually doing.
 
 Live: https://heykai.vercel.app
