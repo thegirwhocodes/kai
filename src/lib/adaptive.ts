@@ -83,7 +83,7 @@ export function decideFocusBlock(
       reasons.push("your last blocks were deep focus");
     } else if (score <= 2.3) {
       sec *= 0.75;
-      reasons.push("your recent ratings show your energy dipping, so a shorter sprint");
+      reasons.push(encouragingShortSprint(ctx.recentFocusBlocks.length));
     }
   }
 
@@ -121,6 +121,15 @@ export function decideFocusBlock(
       : `Let's do a ${mins} minute focus block.`;
 
   return { kind: "focus", plannedSec: sec, rationale };
+}
+
+function encouragingShortSprint(seed: number): string {
+  const options = [
+    "let's make this one light and winnable",
+    "a shorter sprint will make it easier to build momentum",
+    "small, clean wins count too",
+  ];
+  return options[seed % options.length];
 }
 
 /** Decide whether the next break is short or long, and how long. */
