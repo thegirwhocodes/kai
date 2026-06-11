@@ -158,8 +158,18 @@ async function duckDuckGoSearch(
       skip_disambig: "1",
     });
   const res = await fetch(url);
-  const data = await res.json();
   if (!res.ok) throw new Error(`DuckDuckGo search failed: ${res.status}`);
+  let data: {
+    AbstractURL?: string;
+    AbstractText?: string;
+    Heading?: string;
+    RelatedTopics?: unknown[];
+  };
+  try {
+    data = await res.json();
+  } catch {
+    return { provider: "duckduckgo_instant_answer", results: [] };
+  }
   const related = flattenTopics(data.RelatedTopics ?? []);
   const abstractResult =
     data.AbstractURL && data.AbstractText
@@ -194,7 +204,12 @@ async function duckDuckGoHtmlSearch(
   if (!res.ok) return duckDuckGoSearch(query, count);
   const html = await res.text();
   const results = parseDuckDuckGoHtml(html).slice(0, count);
-  if (!results.length) return duckDuckGoSearch(query, count);
+  if (!results.length) {
+    const instant = await duckDuckGoSearch(query, count);
+    return instant.results.length
+      ? instant
+      : { provider: "duckduckgo_html", results: [] };
+  }
   return { provider: "duckduckgo_html", results };
 }
 
