@@ -334,9 +334,9 @@ async function executeSpotifyTool(call: ToolCall): Promise<string> {
       return `"${data.query}" isn't in the user's library. ASK them if you should play it from the Spotify catalog instead — do not play it yet.`;
     if (data.notFound) return `Couldn't find "${data.query}" anywhere on Spotify.`;
     if (data.noActiveDevice)
-      return `Found "${data.track?.name}" but there's no active Spotify device. Tell the user to open Spotify on a device (their devices: ${(data.devices ?? []).join(", ")}).`;
+      return `Found "${data.item?.name}" but there's no active Spotify device. Tell the user to open Spotify on a device (their devices: ${(data.devices ?? []).join(", ")}).`;
     if (data.played)
-      return `Now playing "${data.played.name}" by ${data.played.artists} (from ${data.source === "library" ? "their library" : "the Spotify catalog"}).`;
+      return `Now playing ${data.played.kind ?? "music"} "${data.played.name}"${data.played.subtitle ? ` by ${data.played.subtitle}` : ""} (from ${data.source === "library" ? "their library/playlists" : "the Spotify catalog"}).`;
     if (!res.ok) return `Spotify error: ${data.error ?? res.status}`;
     return "Done.";
   } catch (e) {

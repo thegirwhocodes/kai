@@ -1,6 +1,6 @@
 "use client";
 
-export type Panel = "voice" | "plan" | "tasks" | "settings" | null;
+export type Panel = "voice" | "plan" | "tasks" | "music" | "settings" | null;
 
 export function Dock({
   active,
@@ -15,6 +15,7 @@ export function Dock({
     { id: "voice", icon: "🎙", label: "Talk to Kai" },
     { id: "plan", icon: "◇", label: "Plan next" },
     { id: "tasks", icon: "✓", label: "Tasks" },
+    { id: "music", icon: "♫", label: "Focus music" },
     { id: "settings", icon: "✦", label: "Customize" },
   ];
   return (

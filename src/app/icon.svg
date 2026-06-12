@@ -1,14 +1,13 @@
 <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="i" x1="14" y1="10" x2="52" y2="56" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFB199"/>
+    <linearGradient id="a" x1="14" y1="8" x2="52" y2="56" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFD9C2"/>
       <stop offset="0.5" stop-color="#FB7A8E"/>
       <stop offset="1" stop-color="#B6A6FF"/>
     </linearGradient>
   </defs>
-  <rect width="64" height="64" rx="16" fill="#1A1530"/>
-  <ellipse cx="32" cy="32" rx="24" ry="24" stroke="#F4F1EE" stroke-opacity="0.3" stroke-width="2.5"/>
-  <circle cx="32" cy="31" r="14" fill="url(#i)"/>
-  <circle cx="38" cy="28" r="14" fill="#1A1530" fill-opacity="0.3"/>
-  <circle cx="53" cy="20" r="4" fill="#FFE9D6"/>
+  <rect width="64" height="64" rx="18" fill="#171226"/>
+  <circle cx="32" cy="32" r="22" stroke="url(#a)" stroke-width="4" stroke-linecap="round" stroke-dasharray="104 26"/>
+  <path d="M25 18.5C25 17.1 26.1 16 27.5 16H29.6C31 16 32.1 17.1 32.1 18.5V31.1L43.2 17.1C43.7 16.4 44.5 16 45.4 16H48.1C50.2 16 51.3 18.4 50 20L40.5 31.4L50.7 44.2C52 45.9 50.9 48.4 48.7 48.4H46C45.1 48.4 44.3 48 43.8 47.3L35.3 36.3L32.1 40V45.9C32.1 47.3 31 48.4 29.6 48.4H27.5C26.1 48.4 25 47.3 25 45.9V18.5Z" fill="#F6F3EF"/>
+  <circle cx="51" cy="20" r="4" fill="#FFD9C2"/>
 </svg>

@@ -2,19 +2,18 @@
 
 import { useState } from "react";
 import { useConversation } from "@/lib/voice/useConversation";
+import { useVoiceAgent } from "@/lib/voice/useVoiceAgent";
 
 export function VoicePanel() {
-  const { active, phase, level, log, start, stop, sendText } = useConversation();
+  const conversation = useConversation();
+  const wake = useVoiceAgent();
   const [text, setText] = useState("");
 
-  const status =
-    phase === "thinking"
-      ? "Thinking..."
-      : phase === "speaking"
-        ? "Kai is talking..."
-        : phase === "listening"
-          ? "Listening"
-          : "Tap to start a conversation";
+  const active = conversation.active;
+  const phase = conversation.phase;
+  const level = conversation.level;
+  const log = wake.alwaysOn || wake.log.length > 0 ? wake.log : conversation.log;
+  const status = statusText(wake, phase);
 
   return (
     <section className="glass w-full max-w-md rounded-lg p-4">
@@ -24,7 +23,9 @@ export function VoicePanel() {
         </h2>
         <span
           className="text-xs"
-          style={{ color: active ? "var(--focus)" : "var(--muted)" }}
+          style={{
+            color: active || wake.alwaysOn ? "var(--focus)" : "var(--muted)",
+          }}
         >
           {status}
         </span>
@@ -59,7 +60,7 @@ export function VoicePanel() {
       {/* Call control */}
       <div className="flex items-center gap-3">
         <button
-          onClick={active ? stop : start}
+          onClick={active ? conversation.stop : conversation.start}
           className="flex h-12 shrink-0 items-center gap-2 rounded-full px-5 text-sm font-medium transition"
           style={
             active
@@ -90,12 +91,38 @@ export function VoicePanel() {
         )}
       </div>
 
+      <div className="mt-3 rounded-lg border border-white/10 bg-white/[0.04] p-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium">Hey Kai</p>
+            <p className="mt-1 text-xs leading-5" style={{ color: "var(--muted)" }}>
+              Opt-in wake listening while this tab is open. Browser support is best
+              in Chrome/Safari.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={wake.toggleAlwaysOn}
+            disabled={!wake.supported.stt || active}
+            className="rounded-lg border border-white/15 px-3 py-2 text-xs transition hover:bg-white/10 disabled:opacity-40"
+          >
+            {wake.alwaysOn ? "On" : "Off"}
+          </button>
+        </div>
+        {wake.interim && (
+          <p className="mt-2 text-xs italic" style={{ color: "var(--muted)" }}>
+            {wake.interim}
+          </p>
+        )}
+      </div>
+
       {/* Text fallback — always available */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
           if (!text.trim()) return;
-          void sendText(text.trim());
+          if (wake.alwaysOn) void wake.sendText(text.trim());
+          else void conversation.sendText(text.trim());
           setText("");
         }}
         className="mt-3 flex gap-2"
@@ -115,4 +142,15 @@ export function VoicePanel() {
       </form>
     </section>
   );
+}
+
+function statusText(
+  wake: ReturnType<typeof useVoiceAgent>,
+  phase: ReturnType<typeof useConversation>["phase"],
+) {
+  if (wake.alwaysOn) return wake.awake ? "Awake" : "Listening for Hey Kai";
+  if (wake.thinking || phase === "thinking") return "Thinking...";
+  if (wake.speaking || phase === "speaking") return "Kai is talking...";
+  if (phase === "listening") return "Listening";
+  return "Tap to start a conversation";
 }

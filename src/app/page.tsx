@@ -1,325 +1,174 @@
-"use client";
-
 import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
-import { Clock, greeting } from "@/components/Clock";
-import { Dock, type Panel } from "@/components/Dock";
-import { Quote } from "@/components/Quote";
-import { PlanPanel } from "@/components/PlanPanel";
-import { SettingsPanel } from "@/components/SettingsPanel";
-import { TasksPanel } from "@/components/TasksPanel";
-import { VoicePanel } from "@/components/VoicePanel";
-import { unlockAudio } from "@/lib/alerts";
-import { buildStateSnapshot } from "@/lib/agent/executeTool";
-import { toCss } from "@/lib/backgrounds";
-import { KIND_LABEL, mmss } from "@/lib/format";
-import { useAgentStore } from "@/lib/store";
-import type { KaiRecommendation } from "@/lib/types";
-import { useAutopilot } from "@/lib/useAutopilot";
-import { useExternalCommands } from "@/lib/useExternalCommands";
-import { useTicker } from "@/lib/useTicker";
+import Link from "next/link";
 
-export default function Home() {
-  useTicker();
-  useAutopilot();
-  useExternalCommands();
+const features = [
+  {
+    title: "Adaptive focus blocks",
+    body: "Kai uses your recent focus ratings, breaks, streaks, and calendar room to choose the next session length instead of forcing a generic 25 minute timer.",
+  },
+  {
+    title: "Calendar-aware planning",
+    body: "Kai looks at the day ahead and suggests focus blocks that fit before classes, meetings, calls, errands, and deadlines.",
+  },
+  {
+    title: "Inbox and priority signals",
+    body: "Gmail context can become one clear admin block or draft, without turning Kai into another inbox.",
+  },
+  {
+    title: "Voice and music controls",
+    body: "Talk to Kai, start sessions hands-free, and ask for Spotify playlists or focus music while you stay in the work.",
+  },
+];
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    const id = window.setTimeout(() => setMounted(true), 0);
-    return () => window.clearTimeout(id);
-  }, []);
+const stats = [
+  "Focus time",
+  "Energy patterns",
+  "Session completion",
+  "Calendar fragmentation",
+  "Music fit",
+  "Weekly trends",
+];
 
-  const active = useAgentStore((s) => s.activeBlock);
-  const remaining = useAgentStore((s) => s.remainingSec);
-  const rationale = useAgentStore((s) => s.lastDecisionRationale);
-  const settings = useAgentStore((s) => s.settings);
-  const lastCompletedFocusId = useAgentStore((s) => s.lastCompletedFocusId);
-  const startFocus = useAgentStore((s) => s.startNextFocus);
-  const startBreak = useAgentStore((s) => s.startBreak);
-  const pause = useAgentStore((s) => s.pause);
-  const resume = useAgentStore((s) => s.resume);
-  const complete = useAgentStore((s) => s.completeActive);
-  const skip = useAgentStore((s) => s.skipActive);
-  const rateBlock = useAgentStore((s) => s.rateBlock);
-  const latestRecommendation = useAgentStore((s) => s.latestRecommendation);
-  const setLatestRecommendation = useAgentStore((s) => s.setLatestRecommendation);
-  const startRecommendedFocus = useAgentStore((s) => s.startRecommendedFocus);
-
-  const [panel, setPanel] = useState<Panel>(null);
-  const [selectedTask, setSelectedTask] = useState<string | undefined>();
-  const [planning, setPlanning] = useState(false);
-  const [planError, setPlanError] = useState<string | null>(null);
-
-  const refreshPlan = useCallback(async () => {
-    setPlanning(true);
-    setPlanError(null);
-    try {
-      const res = await fetch("/api/recommendation", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ state: buildStateSnapshot(), intent: "next_session" }),
-      });
-      const data = (await res.json()) as {
-        recommendation?: KaiRecommendation;
-        error?: string;
-      };
-      if (!res.ok || !data.recommendation) {
-        throw new Error(data.error ?? "Kai could not plan right now.");
-      }
-      setLatestRecommendation(data.recommendation);
-    } catch (e) {
-      setPlanError(e instanceof Error ? e.message : "Kai could not plan right now.");
-    } finally {
-      setPlanning(false);
-    }
-  }, [setLatestRecommendation]);
-
-  useEffect(() => {
-    if (!mounted || latestRecommendation) return;
-    const id = window.setTimeout(() => void refreshPlan(), 350);
-    return () => window.clearTimeout(id);
-  }, [mounted, latestRecommendation, refreshPlan]);
-
-  const isRunning = active?.status === "running";
-  const isPaused = active?.status === "paused";
-  const justFinished =
-    active?.status === "completed" || active?.status === "abandoned";
-  const autoAdvancing = active?.status === "completed" && settings.autoStart;
-  const idle = !active || justFinished;
-
-  const beginFocus = () => {
-    unlockAudio();
-    startFocus(selectedTask);
+export default function LandingPage() {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "Kai Focus",
+    applicationCategory: "ProductivityApplication",
+    operatingSystem: "Web",
+    url: "https://heykai.vercel.app",
+    description:
+      "Kai Focus is an adaptive AI focus coach for Pomodoro sessions, calendar-aware planning, inbox signals, voice commands, Spotify focus music, and productivity trends.",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+    },
   };
-  const beginRecommended = () => {
-    unlockAudio();
-    const block = startRecommendedFocus();
-    if (!block) void refreshPlan();
-  };
-  const beginBreak = () => {
-    unlockAudio();
-    startBreak();
-  };
-  const fullscreen = () => {
-    if (typeof document === "undefined") return;
-    if (!document.fullscreenElement) void document.documentElement.requestFullscreen?.();
-    else void document.exitFullscreen?.();
-  };
-
-  if (!mounted) {
-    return <main className="min-h-screen" style={{ background: "#15101f" }} />;
-  }
-
-  const accent =
-    active?.kind === "short_break"
-      ? "var(--break)"
-      : active?.kind === "long_break"
-        ? "var(--long)"
-        : "var(--focus)";
 
   return (
-    <main className="relative min-h-screen overflow-hidden">
-      <div className="scene-bg" style={{ background: toCss(settings.background) }} />
-      <div className="scene-veil" />
+    <main className="min-h-screen bg-[#120f1f] text-[#f6f3ef]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <section className="relative isolate overflow-hidden">
+        <div className="absolute inset-0 -z-20">
+          <Image
+            src="/backgrounds/ghibli-forest.jpg"
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
+          />
+        </div>
+        <div className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(18,15,31,0.94),rgba(18,15,31,0.72),rgba(18,15,31,0.4)),linear-gradient(180deg,rgba(18,15,31,0.35),rgba(18,15,31,0.96))]" />
 
-      {/* Logo */}
-      <div className="fixed left-6 top-6 z-20 flex items-center gap-2.5">
-        <Image src="/logo.svg" alt="Kai" width={36} height={36} priority />
-        <span className="text-2xl font-semibold lowercase">kai</span>
-      </div>
+        <nav className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
+          <Link href="/" className="flex items-center gap-3" aria-label="Kai Focus home">
+            <Image src="/logo.svg" alt="" width={42} height={42} priority />
+            <span className="text-xl font-semibold tracking-normal">Kai Focus</span>
+          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/app" className="btn-ghost hidden sm:inline-flex">
+              Open app
+            </Link>
+            <Link href="/app" className="btn-primary">
+              Start focusing
+            </Link>
+          </div>
+        </nav>
 
-      {/* Quote */}
-      <div className="fixed right-6 top-6 z-20 hidden sm:block">
-        <Quote />
-      </div>
-
-      {/* Center */}
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 text-center">
-        {idle ? (
-          <>
-            <Clock />
-            <p className="mt-5 text-xl font-light sm:text-2xl">{greeting()}</p>
-            <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
-              {latestRecommendation && (
-                <button onClick={beginRecommended} className="btn-primary">
-                  Start next
-                </button>
-              )}
-              <button onClick={beginFocus} className={latestRecommendation ? "btn-ghost" : "btn-primary"}>
-                Start focus
-              </button>
-              <button onClick={beginBreak} className="btn-ghost">
-                Take a break
-              </button>
-            </div>
-            <HeroPlan
-              recommendation={latestRecommendation}
-              loading={planning}
-              error={planError}
-              onRefresh={refreshPlan}
-              onStart={beginRecommended}
-              onOpenPlan={() => setPanel("plan")}
-            />
-          </>
-        ) : (
-          <>
-            <span
-              className="mb-2 text-xs font-semibold uppercase"
-              style={{ color: accent }}
-            >
-              {KIND_LABEL[active.kind] ?? "Focus"}
-            </span>
-            <span className="clock-num text-8xl sm:text-[9rem] lg:text-[11rem]">
-              {mmss(remaining)}
-            </span>
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-              {isRunning && (
-                <button onClick={pause} className="btn-ghost">
-                  Pause
-                </button>
-              )}
-              {isPaused && (
-                <button onClick={resume} className="btn-primary">
-                  Resume
-                </button>
-              )}
-              <button onClick={complete} className="btn-ghost">
-                Done early
-              </button>
-              <button
-                onClick={skip}
-                className="rounded-full px-4 py-2.5 text-sm opacity-60 transition hover:opacity-100"
-              >
-                Skip
-              </button>
-            </div>
-          </>
-        )}
-
-        {rationale && !idle && (
-          <p
-            className="mt-6 max-w-md text-sm font-light italic"
-            style={{ color: "var(--muted)" }}
-          >
-            &ldquo;{rationale}&rdquo;
-          </p>
-        )}
-
-        {autoAdvancing && (
-          <p className="mt-4 text-xs" style={{ color: accent }}>
-            {active?.kind === "focus"
-              ? "Break starting..."
-              : "Next focus block starting..."}
-          </p>
-        )}
-
-        {lastCompletedFocusId && (
-          <div className="glass mt-6 flex flex-col items-center gap-2 rounded-lg px-5 py-3">
-            <span className="text-sm" style={{ color: "var(--muted)" }}>
-              How focused were you?
-            </span>
-            <div className="flex gap-2">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <button
-                  key={n}
-                  onClick={() => rateBlock(lastCompletedFocusId, n as 1 | 2 | 3 | 4 | 5)}
-                  className="h-9 w-9 rounded-full border border-white/20 text-sm transition hover:bg-white/10"
-                >
-                  {n}
-                </button>
-              ))}
+        <div className="mx-auto flex min-h-[calc(100vh-5.8rem)] w-full max-w-6xl items-center px-6 pb-20 pt-10">
+          <div className="max-w-3xl">
+            <p className="mb-5 text-sm font-medium uppercase tracking-[0.16em] text-[#ffd9c2]">
+              AI focus coach for the right next block
+            </p>
+            <h1 className="text-5xl font-semibold leading-[1.02] sm:text-7xl">
+              Kai plans your next focus session around your real life.
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-white/74 sm:text-xl">
+              Kai Focus is a calm Pomodoro-style workspace with voice, adaptive
+              timing, Google Calendar planning, Gmail signals, Spotify focus music,
+              and productivity trends that learn when you actually lock in.
+            </p>
+            <div className="mt-9 flex flex-wrap gap-3">
+              <Link href="/app" className="btn-primary">
+                Try Kai
+              </Link>
+              <a href="#business" className="btn-ghost">
+                See what it does
+              </a>
             </div>
           </div>
-        )}
-      </div>
-
-      {/* Active panel (bottom-left, Flocus-style) */}
-      {panel && (
-        <div className="fixed bottom-24 left-4 z-20 max-w-[calc(100vw-2rem)] sm:bottom-6 sm:left-6">
-          {panel === "voice" && <VoicePanel />}
-          {panel === "plan" && <PlanPanel />}
-          {panel === "tasks" && (
-            <TasksPanel selectedTask={selectedTask} setSelectedTask={setSelectedTask} />
-          )}
-          {panel === "settings" && <SettingsPanel />}
         </div>
-      )}
+      </section>
 
-      <Dock active={panel} onSelect={setPanel} onFullscreen={fullscreen} />
-    </main>
-  );
-}
-
-function HeroPlan({
-  recommendation,
-  loading,
-  error,
-  onRefresh,
-  onStart,
-  onOpenPlan,
-}: {
-  recommendation: KaiRecommendation | null;
-  loading: boolean;
-  error: string | null;
-  onRefresh: () => void;
-  onStart: () => void;
-  onOpenPlan: () => void;
-}) {
-  return (
-    <section className="glass mt-8 w-full max-w-xl rounded-lg p-4 text-left">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs font-medium uppercase" style={{ color: "var(--muted)" }}>
-            Next session
+      <section id="business" className="mx-auto w-full max-w-6xl px-6 py-20">
+        <div className="max-w-2xl">
+          <p className="text-sm font-medium uppercase tracking-[0.16em] text-[#fb7a8e]">
+            More than a timer
           </p>
-          <h2 className="mt-1 break-words text-xl font-semibold leading-snug">
-            {recommendation?.title ??
-              (loading ? "Kai is checking the day" : "Ask Kai to pick the next block")}
+          <h2 className="mt-3 text-3xl font-semibold sm:text-5xl">
+            A focus room with a personal operations layer.
           </h2>
         </div>
-        <button
-          type="button"
-          onClick={onRefresh}
-          disabled={loading}
-          className="rounded-lg border border-white/15 px-3 py-2 text-sm transition hover:bg-white/10 disabled:opacity-50"
-        >
-          {loading ? "..." : "Refresh"}
-        </button>
-      </div>
+        <div className="mt-10 grid gap-4 md:grid-cols-2">
+          {features.map((feature) => (
+            <article
+              key={feature.title}
+              className="rounded-lg border border-white/12 bg-white/[0.055] p-6"
+            >
+              <h3 className="text-xl font-semibold">{feature.title}</h3>
+              <p className="mt-3 leading-7 text-white/68">{feature.body}</p>
+            </article>
+          ))}
+        </div>
+      </section>
 
-      {recommendation && (
-        <>
-          <div className="mt-3 flex flex-wrap gap-2 text-xs" style={{ color: "var(--muted)" }}>
-            <span className="rounded-full border border-white/15 px-2 py-1">
-              {recommendation.durationMinutes} min
-            </span>
-            <span className="rounded-full border border-white/15 px-2 py-1">
-              {recommendation.mode === "admin" ? "admin focus" : recommendation.mode}
-            </span>
-            <span className="rounded-full border border-white/15 px-2 py-1">
-              {recommendation.confidence} confidence
-            </span>
+      <section className="border-y border-white/10 bg-white/[0.035]">
+        <div className="mx-auto grid w-full max-w-6xl gap-10 px-6 py-20 lg:grid-cols-[0.9fr_1.1fr]">
+          <div>
+            <p className="text-sm font-medium uppercase tracking-[0.16em] text-[#b6a6ff]">
+              Kai Trends
+            </p>
+            <h2 className="mt-3 text-3xl font-semibold sm:text-5xl">
+              Learn when your focus actually works.
+            </h2>
+            <p className="mt-5 leading-8 text-white/68">
+              Kai Trends is designed to connect sessions, calendar pressure,
+              energy ratings, interruptions, and music into practical coaching:
+              what helped, what hurt, and what to try next.
+            </p>
           </div>
-          <p className="mt-3 break-words text-sm leading-relaxed" style={{ color: "var(--muted)" }}>
-            {recommendation.reasonParts.slice(0, 3).join("; ")}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {stats.map((item) => (
+              <div
+                key={item}
+                className="rounded-lg border border-white/12 bg-[#1a1530]/75 p-4 text-sm font-medium text-white/82"
+              >
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto w-full max-w-6xl px-6 py-20">
+        <div className="rounded-lg border border-white/12 bg-[linear-gradient(135deg,rgba(255,177,153,0.14),rgba(182,166,255,0.13))] p-8 sm:p-10">
+          <h2 className="text-3xl font-semibold">Say “Hey Kai” and keep working.</h2>
+          <p className="mt-4 max-w-3xl leading-8 text-white/72">
+            Turn on opt-in wake listening while Kai is open, then ask for a focus
+            block, a calendar check, or Spotify music like “play Christian lofi
+            instrumental from Spotify.” Kai searches your library first and can
+            use the wider Spotify catalog when you ask for it.
           </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <button type="button" onClick={onStart} className="btn-primary">
-              Start this
-            </button>
-            <button type="button" onClick={onOpenPlan} className="btn-ghost">
-              Details
-            </button>
-          </div>
-        </>
-      )}
-
-      {!recommendation && (
-        <p className="mt-3 text-sm" style={{ color: error ? "var(--break)" : "var(--muted)" }}>
-          {error ?? "Calendar, tasks, and inbox signals will shape this once connected."}
-        </p>
-      )}
-    </section>
+          <Link href="/app" className="btn-primary mt-7 inline-flex">
+            Open Kai
+          </Link>
+        </div>
+      </section>
+    </main>
   );
 }

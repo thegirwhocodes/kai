@@ -241,6 +241,21 @@ export function useVoiceAgent() {
     [],
   );
 
+  useEffect(() => {
+    const onVisibility = () => {
+      if (!alwaysOnRef.current || document.visibilityState !== "visible") return;
+      setTimeout(() => {
+        try {
+          recRef.current?.start();
+        } catch {
+          /* recognition may already be running */
+        }
+      }, 200);
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
+
   const sendText = useCallback(
     (text: string) => void handleUtterance(text),
     [handleUtterance],
