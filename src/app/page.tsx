@@ -29,6 +29,12 @@ const stats = [
   "Weekly trends",
 ];
 
+const navLinks = [
+  { href: "/pricing", label: "Pricing" },
+  { href: "/testers", label: "Testers" },
+  { href: "/support", label: "Support" },
+];
+
 export default function LandingPage() {
   const jsonLd = {
     "@context": "https://schema.org",
@@ -71,6 +77,15 @@ export default function LandingPage() {
             <span className="text-xl font-semibold tracking-normal">Kai Focus</span>
           </Link>
           <div className="flex items-center gap-2">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="hidden rounded-lg px-3 py-2 text-sm text-white/72 transition hover:bg-white/10 hover:text-white md:inline-flex"
+              >
+                {link.label}
+              </Link>
+            ))}
             <Link href="/app" className="btn-ghost hidden sm:inline-flex">
               Open app
             </Link>
@@ -169,6 +184,18 @@ export default function LandingPage() {
           </Link>
         </div>
       </section>
+
+      <footer className="border-t border-white/10 px-6 py-10">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 text-sm text-white/58 sm:flex-row sm:items-center sm:justify-between">
+          <p>Kai Focus - adaptive focus coach.</p>
+          <div className="flex flex-wrap gap-4">
+            <Link href="/pricing">Pricing</Link>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
+            <Link href="/changelog">Changelog</Link>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }

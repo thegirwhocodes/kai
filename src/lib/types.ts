@@ -1,3 +1,5 @@
+import { DEFAULT_BACKGROUND } from "@/lib/backgrounds";
+
 // Core domain model for the adaptive Pomodoro agent.
 // A "session" is a working day's worth of blocks. A "block" is one
 // focus or break interval. The agent adapts block length using the
@@ -183,5 +185,5 @@ export const DEFAULT_SETTINGS: AgentSettings = {
   autoStartDelaySec: 5,
   soundAlerts: true,
   voiceAlerts: true,
-  background: "/backgrounds/pink-bloom.jpg",
+  background: DEFAULT_BACKGROUND,
 };

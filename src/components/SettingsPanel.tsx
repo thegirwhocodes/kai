@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import { BACKGROUNDS } from "@/lib/backgrounds";
 import { notificationsEnabled, unlockAudio } from "@/lib/alerts";
 import { useAgentStore } from "@/lib/store";
@@ -28,18 +27,21 @@ export function SettingsPanel() {
         {BACKGROUNDS.map((b) => (
           <button
             key={b.id}
-            onClick={() => update({ background: b.src })}
+            onClick={() => update({ background: b.value })}
             className="relative aspect-video overflow-hidden rounded-lg border transition"
             style={{
               borderColor:
-                settings.background === b.src
+                settings.background === b.value
                   ? "var(--focus)"
                   : "rgba(255,255,255,0.15)",
+              background:
+                b.kind === "gradient"
+                  ? b.value
+                  : `url("${b.value}") center / cover no-repeat`,
             }}
             title={b.name}
-          >
-            <Image src={b.src} alt={b.name} fill className="object-cover" sizes="96px" />
-          </button>
+            aria-label={b.name}
+          />
         ))}
       </div>
       <form

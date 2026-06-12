@@ -41,18 +41,62 @@ body {
   background-position: center;
   transition: opacity 0.8s ease;
 }
+.scene-bg::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.18), transparent 24%),
+    radial-gradient(circle at 16% 82%, rgba(111, 227, 200, 0.15), transparent 30%),
+    radial-gradient(circle at 84% 78%, rgba(251, 122, 142, 0.15), transparent 31%);
+  mix-blend-mode: screen;
+  opacity: 0.72;
+  pointer-events: none;
+}
 /* Legibility veil over busy photo backgrounds. */
 .scene-veil {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(
-    180deg,
-    rgba(0, 0, 0, 0.28) 0%,
-    rgba(0, 0, 0, 0.12) 30%,
-    rgba(0, 0, 0, 0.34) 100%
-  );
+  background:
+    radial-gradient(circle at 50% 44%, rgba(18, 15, 31, 0.1), rgba(18, 15, 31, 0.45) 76%),
+    linear-gradient(
+      180deg,
+      rgba(5, 6, 12, 0.34) 0%,
+      rgba(5, 6, 12, 0.14) 30%,
+      rgba(5, 6, 12, 0.5) 100%
+    );
   pointer-events: none;
+}
+
+.public-shell {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 74% 9%, rgba(255, 217, 194, 0.23), transparent 28rem),
+    radial-gradient(circle at 12% 28%, rgba(111, 227, 200, 0.14), transparent 30rem),
+    radial-gradient(circle at 78% 84%, rgba(251, 122, 142, 0.2), transparent 32rem),
+    linear-gradient(145deg, #0f111d 0%, #1d1833 42%, #2c2246 100%);
+}
+.public-shell::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  content: "";
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 86px 86px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.44), transparent 76%);
+  pointer-events: none;
+}
+.public-card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
 }
 
 /* Frosted glass surface. */
