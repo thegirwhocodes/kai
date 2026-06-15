@@ -22,6 +22,7 @@ Kai is not a 25-minute Pomodoro clone. The research behind the build showed that
 - Searches Gmail history, fetches individual email context, and creates or edits Gmail drafts without sending them.
 - Searches the live web through a configured search provider, with a limited no-key fallback.
 - Plays Spotify music by voice, searching saved tracks and playlists first and the broader Spotify catalog when the user asks for it.
+- Exposes an Alexa custom-skill endpoint for next-session planning, browser timer control, and Spotify playback.
 - Supports opt-in "Hey Kai" wake listening while the app tab is open.
 - Shares one client-side store between the timer UI and the voice agent, so voice commands and clicks operate the same state.
 - Uses a Sabi-style conversational voice loop: tap once, speak naturally, pause, get an answer.
@@ -82,3 +83,6 @@ Useful integration env vars:
 - `BRAVE_SEARCH_API_KEY`, `TAVILY_API_KEY`, `SERPER_API_KEY`, or `GOOGLE_SEARCH_API_KEY` plus `GOOGLE_SEARCH_ENGINE_ID`
 - `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_REFRESH_TOKEN`
 - `NEXT_PUBLIC_SITE_URL` for the canonical URL used by metadata and sitemap
+- `ALEXA_SKILL_ID`, `ALEXA_VERIFY_SIGNATURES` for the custom Alexa skill webhook
+
+See [`docs/ALEXA.md`](docs/ALEXA.md) for the Alexa Console setup and skill model.

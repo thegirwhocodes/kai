@@ -97,9 +97,16 @@ export interface KaiRecommendation {
 export interface KaiCommand {
   id: string;
   createdAt: number;
-  type: "show_recommendation" | "start_recommended_focus";
+  type:
+    | "show_recommendation"
+    | "start_recommended_focus"
+    | "start_break"
+    | "pause_active"
+    | "resume_active"
+    | "complete_active"
+    | "skip_active";
   source: "alexa" | "api";
-  recommendation: KaiRecommendation;
+  recommendation?: KaiRecommendation;
   spoken?: string;
 }
 

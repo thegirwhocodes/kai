@@ -39,8 +39,30 @@ export function useExternalCommands() {
 
 function applyCommand(command: KaiCommand) {
   const store = useAgentStore.getState();
-  store.setLatestRecommendation(command.recommendation);
-  if (command.type === "start_recommended_focus") {
-    store.startRecommendedFocus();
+  if (command.recommendation) {
+    store.setLatestRecommendation(command.recommendation);
+  }
+
+  switch (command.type) {
+    case "start_recommended_focus":
+      store.startRecommendedFocus();
+      break;
+    case "start_break":
+      store.startBreak();
+      break;
+    case "pause_active":
+      store.pause();
+      break;
+    case "resume_active":
+      store.resume();
+      break;
+    case "complete_active":
+      store.completeActive();
+      break;
+    case "skip_active":
+      store.skipActive();
+      break;
+    case "show_recommendation":
+      break;
   }
 }

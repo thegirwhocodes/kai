@@ -43,6 +43,57 @@
           ]
         },
         {
+          "name": "StartBreakIntent",
+          "slots": [],
+          "samples": [
+            "start a break",
+            "take a break",
+            "start my break",
+            "begin a break",
+            "give me a break"
+          ]
+        },
+        {
+          "name": "PauseTimerIntent",
+          "slots": [],
+          "samples": [
+            "pause Kai",
+            "pause the timer",
+            "pause my focus session",
+            "hold the timer"
+          ]
+        },
+        {
+          "name": "ResumeTimerIntent",
+          "slots": [],
+          "samples": [
+            "resume Kai",
+            "resume the timer",
+            "continue my focus session",
+            "keep going"
+          ]
+        },
+        {
+          "name": "CompleteBlockIntent",
+          "slots": [],
+          "samples": [
+            "mark this done",
+            "finish this block",
+            "complete this focus session",
+            "I am done"
+          ]
+        },
+        {
+          "name": "SkipBlockIntent",
+          "slots": [],
+          "samples": [
+            "skip this block",
+            "skip the timer",
+            "cancel this focus session",
+            "stop this block"
+          ]
+        },
+        {
           "name": "AddTaskIntent",
           "slots": [
             {
@@ -58,7 +109,55 @@
           ]
         },
         {
+          "name": "PlayMusicIntent",
+          "slots": [
+            {
+              "name": "musicQuery",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "play music",
+            "play focus music",
+            "play {musicQuery}",
+            "play {musicQuery} from Spotify",
+            "start {musicQuery}",
+            "start {musicQuery} from Spotify",
+            "play Christian lofi instrumental",
+            "play deep focus from Spotify"
+          ]
+        },
+        {
+          "name": "BrainFmIntent",
+          "slots": [],
+          "samples": [
+            "play brain f m",
+            "start brain f m",
+            "play brain fm",
+            "start brain fm",
+            "open brain f m"
+          ]
+        },
+        {
+          "name": "PauseMusicIntent",
+          "slots": [],
+          "samples": [
+            "pause music",
+            "pause Spotify",
+            "stop the music",
+            "stop Spotify"
+          ]
+        },
+        {
           "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.YesIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NoIntent",
           "samples": []
         },
         {
