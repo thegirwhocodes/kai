@@ -87,14 +87,19 @@ function buildContext(
   const recentFocusBlocks = blocks.filter((b) => b.kind === "focus");
   // Focus streak = completed focus blocks since the last long break.
   let streak = 0;
+  let focusMinutesSinceLongBreak = 0;
   for (let i = blocks.length - 1; i >= 0; i--) {
     const b = blocks[i];
     if (b.kind === "long_break" && b.status === "completed") break;
-    if (b.kind === "focus" && b.status === "completed") streak++;
+    if (b.kind === "focus" && b.status === "completed") {
+      streak++;
+      focusMinutesSinceLongBreak += Math.round((b.elapsedSec || b.plannedSec) / 60);
+    }
   }
   return {
     recentFocusBlocks,
     focusStreak: streak,
+    focusMinutesSinceLongBreak,
     hourOfDay,
     minutesUntilNextCommitment,
     baselineFocusSec: settings.baselineFocusSec,

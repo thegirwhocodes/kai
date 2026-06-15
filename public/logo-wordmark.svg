@@ -1,7 +1,17 @@
-<svg width="360" height="96" viewBox="0 0 360 96" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Kai Focus">
-  <rect width="96" height="96" rx="28" fill="#171226"/>
-  <circle cx="48" cy="48" r="34" stroke="#FB7A8E" stroke-width="5" stroke-linecap="round" stroke-dasharray="164 36"/>
-  <path d="M37 27.5C37 25.6 38.6 24 40.5 24H43.3C45.2 24 46.8 25.6 46.8 27.5V46.5L63.5 25.7C64.2 24.8 65.2 24.3 66.3 24.3H70.2C73.2 24.3 74.8 27.8 72.9 30.1L58.8 47.2L73.9 66.3C75.8 68.7 74.1 72.2 71.1 72.2H67.1C66 72.2 64.9 71.7 64.2 70.8L51.4 54.3L46.8 59.8V68.7C46.8 70.6 45.2 72.2 43.3 72.2H40.5C38.6 72.2 37 70.6 37 68.7V27.5Z" fill="#F6F3EF"/>
-  <circle cx="76.5" cy="29.5" r="5.5" fill="#FFD9C2"/>
-  <text x="120" y="58" fill="#F6F3EF" font-family="Poppins, Inter, Arial, sans-serif" font-size="34" font-weight="650" letter-spacing="0">Kai Focus</text>
+<svg width="320" height="96" viewBox="0 0 320 96" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title">
+  <title id="title">Kai Focus</title>
+  <defs>
+    <linearGradient id="kai-wordmark" x1="22" y1="14" x2="76" y2="82" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFD9C2"/>
+      <stop offset="0.48" stop-color="#FB7A8E"/>
+      <stop offset="1" stop-color="#B6A6FF"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="88" height="88" rx="24" fill="#151225"/>
+  <rect x="4.75" y="4.75" width="86.5" height="86.5" rx="23.25" stroke="#F6F3EF" stroke-opacity="0.1" stroke-width="1.5"/>
+  <circle cx="48" cy="48" r="29" stroke="url(#kai-wordmark)" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="136 46" transform="rotate(-38 48 48)"/>
+  <path d="M35 29V67" stroke="#F6F3EF" stroke-width="7.5" stroke-linecap="round"/>
+  <path d="M58.5 29L42 48L60.5 67" stroke="#F6F3EF" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="70" cy="27" r="4.8" fill="#FFD9C2"/>
+  <text x="116" y="58" fill="#F6F3EF" font-family="Poppins, Inter, Arial, sans-serif" font-size="34" font-weight="600" letter-spacing="0">kai focus</text>
 </svg>

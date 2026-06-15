@@ -149,6 +149,8 @@ export interface AdaptiveContext {
   recentFocusBlocks: Block[];
   /** Consecutive completed focus blocks since the last long break. */
   focusStreak: number;
+  /** Completed focus minutes since the last long break. */
+  focusMinutesSinceLongBreak: number;
   /** Local hour 0–23, used as a proxy for circadian energy. */
   hourOfDay: number;
   /** Minutes free before the user's next calendar commitment, if known. */

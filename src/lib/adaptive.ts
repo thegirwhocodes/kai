@@ -21,6 +21,9 @@ import type {
 const clamp = (v: number, lo: number, hi: number) =>
   Math.max(lo, Math.min(hi, v));
 
+const FOCUS_PRESETS_MIN = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 75, 90, 120, 150, 180];
+const BREAK_PRESETS_MIN = [5, 10, 15, 20, 30, 45, 60, 90];
+
 /** Average focus rating over the last N rated focus blocks (1–5, or null). */
 function recentFocusScore(blocks: Block[], n = 3): number | null {
   const rated = blocks
@@ -44,6 +47,27 @@ function circadianFactor(hour: number): number {
   if (hour >= 15 && hour < 18) return 1.05; // afternoon recovery
   if (hour >= 18 && hour < 21) return 0.95; // evening
   return 0.8; // late night / early morning
+}
+
+function snapToPresetSeconds(
+  seconds: number,
+  presetsMin: number[],
+  minSec: number,
+  maxSec: number,
+): number {
+  const min = Math.ceil(minSec / 60);
+  const max = Math.floor(maxSec / 60);
+  const presets = presetsMin.filter((m) => m >= min && m <= max);
+  if (!presets.length) return Math.round(clamp(seconds, minSec, maxSec) / 60) * 60;
+  const targetMin = seconds / 60;
+  const best = presets.reduce((closest, next) =>
+    Math.abs(next - targetMin) < Math.abs(closest - targetMin) ? next : closest,
+  );
+  return best * 60;
+}
+
+function minutesText(minutes: number): string {
+  return `${minutes} minute${minutes === 1 ? "" : "s"}`;
 }
 
 /**
@@ -110,15 +134,22 @@ export function decideFocusBlock(
     }
   }
 
-  sec = clamp(sec, settings.minFocusSec, settings.maxFocusSec);
-  // Round to the nearest minute for a clean spoken number.
-  sec = Math.round(sec / 60) * 60;
+  let maxAllowedSec = settings.maxFocusSec;
+  if (
+    ctx.minutesUntilNextCommitment != null &&
+    ctx.minutesUntilNextCommitment > 0
+  ) {
+    const fitSec = (ctx.minutesUntilNextCommitment - 1) * 60;
+    if (fitSec >= settings.minFocusSec) maxAllowedSec = Math.min(maxAllowedSec, fitSec);
+  }
+
+  sec = snapToPresetSeconds(sec, FOCUS_PRESETS_MIN, settings.minFocusSec, maxAllowedSec);
 
   const mins = Math.round(sec / 60);
   const rationale =
     reasons.length > 0
-      ? `Let's do ${mins} minutes — ${reasons.join(", and ")}.`
-      : `Let's do a ${mins} minute focus block.`;
+      ? `Let's do ${minutesText(mins)}: ${reasons.join(", and ")}.`
+      : `Let's do a clean ${minutesText(mins)} focus block.`;
 
   return { kind: "focus", plannedSec: sec, rationale };
 }
@@ -141,11 +172,17 @@ export function decideBreakBlock(
     ctx.focusStreak % settings.blocksBeforeLongBreak === 0;
 
   if (longDue) {
-    const mins = Math.round(settings.longBreakSec / 60);
+    const plannedSec = snapToPresetSeconds(
+      settings.longBreakSec,
+      BREAK_PRESETS_MIN,
+      5 * 60,
+      settings.longBreakSec,
+    );
+    const mins = Math.round(plannedSec / 60);
     return {
       kind: "long_break",
-      plannedSec: settings.longBreakSec,
-      rationale: `That's ${ctx.focusStreak} blocks done — take a proper ${mins} minute break. Step away from the screen.`,
+      plannedSec,
+      rationale: `That's ${ctx.focusStreak} blocks done. Take a proper ${minutesText(mins)} break and step away from the screen.`,
     };
   }
 
@@ -155,18 +192,19 @@ export function decideBreakBlock(
   // up over the streak.
   const score = recentFocusScore(ctx.recentFocusBlocks);
   let sec = settings.shortBreakSec;
-  let why = "";
+  let why = "Reset before the next block.";
   if (score != null && score <= 2.3) {
-    sec = Math.round(settings.shortBreakSec * 1.4);
-    why = " — a little longer to properly reset";
-  } else if (ctx.focusStreak >= 3) {
-    sec = Math.round(settings.shortBreakSec * 1.2);
-    why = " — a bit longer, you've been at it a while";
+    sec = Math.max(10 * 60, Math.round(settings.shortBreakSec * 1.4));
+    why = "Take a fuller reset before the next block.";
+  } else if (ctx.focusMinutesSinceLongBreak >= 75) {
+    sec = Math.max(10 * 60, Math.round(settings.shortBreakSec * 2));
+    why = "You've earned a fuller reset.";
   }
+  sec = snapToPresetSeconds(sec, BREAK_PRESETS_MIN, 5 * 60, Math.max(settings.longBreakSec, sec));
   const mins = Math.max(1, Math.round(sec / 60));
   return {
     kind: "short_break",
     plannedSec: sec,
-    rationale: `${mins} minute break${why}.`,
+    rationale: `${minutesText(mins)} break. ${why}`,
   };
 }
