@@ -501,7 +501,7 @@ function freshTimestamp(timestamp?: string): boolean {
 }
 
 async function validateAlexaRequest(req: Request, rawBody: string): Promise<boolean> {
-  if (process.env.ALEXA_VERIFY_SIGNATURES !== "true") return true;
+  if (process.env.ALEXA_VERIFY_SIGNATURES?.trim() !== "true") return true;
 
   const certUrl = req.headers.get("SignatureCertChainUrl");
   const signature = req.headers.get("Signature-256");
