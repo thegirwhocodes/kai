@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import WaitlistForm from "@/components/WaitlistForm";
 
 const features = [
   {
@@ -61,10 +62,10 @@ export default function LandingPage() {
       <section className="relative isolate overflow-hidden">
         <div className="absolute inset-0 -z-20">
           <Image
-            src="/backgrounds/ghibli-forest.jpg"
+            src="/backgrounds/library-lamps.jpg"
             alt=""
             fill
-            priority
+            preload
             sizes="100vw"
             className="object-cover"
           />
@@ -73,7 +74,7 @@ export default function LandingPage() {
 
         <nav className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-6">
           <Link href="/" className="flex items-center gap-3" aria-label="Kai Focus home">
-            <Image src="/logo.svg" alt="" width={42} height={42} priority />
+            <Image src="/logo.svg" alt="" width={42} height={42} preload />
             <span className="text-xl font-semibold tracking-normal">Kai Focus</span>
           </Link>
           <div className="flex items-center gap-2">
@@ -108,14 +109,17 @@ export default function LandingPage() {
               timing, Google Calendar planning, Gmail signals, Spotify focus music,
               and productivity trends that learn when you actually lock in.
             </p>
-            <div className="mt-9 flex flex-wrap gap-3">
-              <Link href="/app" className="btn-primary">
-                Try Kai
-              </Link>
-              <a href="#business" className="btn-ghost">
-                See what it does
-              </a>
+            <div className="mt-9">
+              <WaitlistForm variant="hero" />
             </div>
+            <p className="mt-5 text-sm text-white/55">
+              <a
+                href="#business"
+                className="underline-offset-4 transition hover:text-white/80 hover:underline"
+              >
+                See what Kai does ↓
+              </a>
+            </p>
           </div>
         </div>
       </section>
@@ -179,9 +183,30 @@ export default function LandingPage() {
             instrumental from Spotify.” Kai searches your library first and can
             use the wider Spotify catalog when you ask for it.
           </p>
-          <Link href="/app" className="btn-primary mt-7 inline-flex">
-            Open Kai
-          </Link>
+          <a href="#waitlist" className="btn-primary mt-7 inline-flex">
+            Get early access
+          </a>
+        </div>
+      </section>
+
+      <section
+        id="waitlist"
+        className="mx-auto w-full max-w-6xl scroll-mt-24 px-6 pb-24 pt-4"
+      >
+        <div className="flex flex-col items-center rounded-3xl border border-white/12 bg-[linear-gradient(135deg,rgba(182,166,255,0.16),rgba(255,177,153,0.14))] px-6 py-14 text-center">
+          <p className="text-sm font-medium uppercase tracking-[0.16em] text-[#ffd9c2]">
+            Early access
+          </p>
+          <h2 className="mt-3 max-w-2xl text-3xl font-semibold sm:text-4xl">
+            Be first to focus with Kai.
+          </h2>
+          <p className="mt-4 max-w-xl leading-8 text-white/72">
+            Kai is opening to a small first group. Join the waitlist and we&apos;ll
+            email you the moment you can connect your calendar and start.
+          </p>
+          <div className="mt-8 flex w-full justify-center">
+            <WaitlistForm variant="band" />
+          </div>
         </div>
       </section>
 
