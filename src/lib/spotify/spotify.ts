@@ -80,7 +80,7 @@ function scoreMatch(query: string, name: string, subtitle = "", kind?: SpotifyIt
   }
 
   // Generic mood/genre requests usually mean "find me a playlist or station."
-  const genericIntent = /\b(lofi|lo-fi|instrumental|focus|study|work|ambient|worship|christian|playlist|radio|mix|beats|deep work)\b/i.test(
+  const genericIntent = /\b(lofi|lo-fi|instrumental|focus|study|work|ambient|worship|christian|playlist|radio|mix|beats|deep work|brainwave|brainwaves|binaural|gamma|40hz|40 hz|lock in)\b/i.test(
     query,
   );
   if (genericIntent && kind === "playlist") score += 24;

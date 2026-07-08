@@ -14,34 +14,53 @@ export function SettingsPanel() {
   );
 
   return (
-    <div className="glass max-h-[70vh] w-80 overflow-y-auto rounded-lg p-4">
-      <h2 className="mb-3 text-sm font-medium" style={{ color: "var(--muted)" }}>
-        Customize
-      </h2>
+    <div
+      className="max-h-[76vh] w-full overflow-y-auto rounded-lg border border-white/12 p-4 shadow-[0_28px_90px_rgba(0,0,0,0.58)] backdrop-blur-2xl"
+      style={{ background: "rgba(18, 15, 31, 0.96)" }}
+    >
+      <div className="mb-4">
+        <h2 className="text-sm font-medium" style={{ color: "var(--muted)" }}>
+          Ambient worlds
+        </h2>
+        <p className="mt-1 text-xs leading-5" style={{ color: "var(--muted)" }}>
+          Calm study rooms, soft light, and legible focus gradients.
+        </p>
+      </div>
 
       {/* Background picker */}
-      <p className="mb-2 text-xs" style={{ color: "var(--muted)" }}>
-        Background
-      </p>
-      <div className="mb-3 grid grid-cols-3 gap-2">
+      <div className="mb-4 grid gap-3 sm:grid-cols-2">
         {BACKGROUNDS.map((b) => (
           <button
             key={b.id}
             onClick={() => update({ background: b.value })}
-            className="relative aspect-video overflow-hidden rounded-lg border transition"
+            className="group relative overflow-hidden rounded-lg border bg-white/[0.035] p-2 text-left transition hover:bg-white/[0.07]"
             style={{
               borderColor:
                 settings.background === b.value
                   ? "var(--focus)"
                   : "rgba(255,255,255,0.15)",
-              background:
-                b.kind === "gradient"
-                  ? b.value
-                  : `url("${b.value}") center / cover no-repeat`,
             }}
             title={b.name}
             aria-label={b.name}
-          />
+          >
+            <span
+              className="block aspect-video rounded-md bg-cover bg-center shadow-[inset_0_-30px_60px_rgba(0,0,0,0.24)]"
+              style={{
+                background:
+                  b.kind === "gradient"
+                    ? b.value
+                    : `linear-gradient(rgba(0,0,0,0.04),rgba(0,0,0,0.18)), url("${b.value}") center / cover no-repeat`,
+              }}
+            />
+            <span className="mt-2 flex items-center justify-between gap-2">
+              <span className="truncate text-sm font-medium">{b.name}</span>
+              {settings.background === b.value && (
+                <span className="rounded-full bg-white/12 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-white/80">
+                  active
+                </span>
+              )}
+            </span>
+          </button>
         ))}
       </div>
       <form
@@ -147,6 +166,11 @@ export function SettingsPanel() {
           label="Voice: Kai speaks transitions"
           on={settings.voiceAlerts}
           onClick={() => update({ voiceAlerts: !settings.voiceAlerts })}
+        />
+        <Row
+          label="Hey Kai: listen when app opens"
+          on={settings.wakeListening}
+          onClick={() => update({ wakeListening: !settings.wakeListening })}
         />
         {!notifOn && (
           <button

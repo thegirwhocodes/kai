@@ -10,6 +10,7 @@ import { MusicPanel } from "@/components/MusicPanel";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { TasksPanel } from "@/components/TasksPanel";
 import { VoicePanel } from "@/components/VoicePanel";
+import { WakeListener } from "@/components/WakeListener";
 import { unlockAudio } from "@/lib/alerts";
 import { buildStateSnapshot } from "@/lib/agent/executeTool";
 import { toCss } from "@/lib/backgrounds";
@@ -19,8 +20,17 @@ import type { KaiRecommendation } from "@/lib/types";
 import { useAutopilot } from "@/lib/useAutopilot";
 import { useExternalCommands } from "@/lib/useExternalCommands";
 import { useTicker } from "@/lib/useTicker";
+import { VoiceAgentProvider } from "@/lib/voice/useVoiceAgent";
 
 export default function Home() {
+  return (
+    <VoiceAgentProvider>
+      <KaiApp />
+    </VoiceAgentProvider>
+  );
+}
+
+function KaiApp() {
   useTicker();
   useAutopilot();
   useExternalCommands();
@@ -126,7 +136,7 @@ export default function Home() {
 
       {/* Logo */}
       <div className="fixed left-6 top-6 z-20 flex items-center gap-2.5">
-        <Image src="/logo.svg" alt="Kai" width={36} height={36} priority />
+        <Image src="/logo.svg" alt="Kai" width={36} height={36} preload />
         <span className="text-2xl font-semibold lowercase">kai</span>
       </div>
 
@@ -134,9 +144,14 @@ export default function Home() {
       <div className="fixed right-6 top-6 z-20 hidden sm:block">
         <Quote />
       </div>
+      <WakeListener onOpenVoice={() => setPanel("voice")} />
 
       {/* Center */}
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 text-center">
+      <div
+        className={`relative z-10 flex min-h-screen flex-col items-center justify-center px-6 text-center transition-transform duration-300 ${
+          panel ? "xl:translate-x-60" : ""
+        }`}
+      >
         {idle ? (
           <>
             <Clock />
@@ -237,15 +252,24 @@ export default function Home() {
 
       {/* Active panel (bottom-left, Flocus-style) */}
       {panel && (
-        <div className="fixed bottom-24 left-4 z-20 max-w-[calc(100vw-2rem)] sm:bottom-6 sm:left-6">
-          {panel === "voice" && <VoicePanel />}
-          {panel === "plan" && <PlanPanel />}
-          {panel === "music" && <MusicPanel />}
-          {panel === "tasks" && (
-            <TasksPanel selectedTask={selectedTask} setSelectedTask={setSelectedTask} />
-          )}
-          {panel === "settings" && <SettingsPanel />}
-        </div>
+        <>
+          <div className="fixed inset-0 z-[15] bg-[#15101f]/60 backdrop-blur-sm sm:hidden" />
+          <div
+            className={`fixed bottom-24 left-4 z-40 max-w-[calc(100vw-2rem)] sm:bottom-6 sm:left-6 ${
+              panel === "settings"
+                ? "w-[min(42rem,calc(100vw-2rem))]"
+                : "w-[min(28rem,calc(100vw-2rem))]"
+            }`}
+          >
+            {panel === "voice" && <VoicePanel />}
+            {panel === "plan" && <PlanPanel />}
+            {panel === "music" && <MusicPanel />}
+            {panel === "tasks" && (
+              <TasksPanel selectedTask={selectedTask} setSelectedTask={setSelectedTask} />
+            )}
+            {panel === "settings" && <SettingsPanel />}
+          </div>
+        </>
       )}
 
       <Dock active={panel} onSelect={setPanel} onFullscreen={fullscreen} />

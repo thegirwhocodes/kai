@@ -27,21 +27,43 @@ export default function Image() {
         <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
           <div
             style={{
+              position: "relative",
               width: 96,
               height: 96,
-              borderRadius: 28,
-              border: "2px solid rgba(255,255,255,0.24)",
-              background:
-                "radial-gradient(circle at 36% 28%, #ffd9c2 0%, #fb7a8e 45%, #b6a6ff 100%)",
+              borderRadius: 26,
+              border: "2px solid rgba(247,242,235,0.14)",
+              background: "linear-gradient(135deg, #171322 0%, #1f1830 58%, #2a203d 100%)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 58,
+              fontSize: 56,
               fontWeight: 800,
-              color: "#120f1f",
+              color: "#f9f5ee",
             }}
           >
-            k
+            <div
+              style={{
+                position: "absolute",
+                width: 56,
+                height: 50,
+                borderRadius: 999,
+                border: "5px solid #ff8ea3",
+                opacity: 0.95,
+                transform: "rotate(-24deg)",
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                right: 18,
+                top: 18,
+                width: 10,
+                height: 10,
+                borderRadius: 999,
+                background: "#ffe0c8",
+              }}
+            />
+            K
           </div>
           <div style={{ fontSize: 42, fontWeight: 700 }}>Kai Focus</div>
         </div>

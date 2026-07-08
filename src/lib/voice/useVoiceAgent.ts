@@ -9,7 +9,16 @@
 //
 // STT = Web Speech API; TTS = shared speakKai (ElevenLabs w/ browser fallback).
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  createElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { runUserTurn, type Message } from "@/lib/agent/client";
 import { chime } from "@/lib/alerts";
 import { speakKai } from "@/lib/voice/speak";
@@ -44,7 +53,22 @@ export interface ChatEntry {
 const WAKE = /\b(?:hey|hi|ok|okay)?\s*kai\b/i;
 const AWAKE_MS = 12_000; // hands-free command window after the wake word
 
+export type VoiceAgentController = ReturnType<typeof useVoiceAgentEngine>;
+
+const VoiceAgentContext = createContext<VoiceAgentController | null>(null);
+
+export function VoiceAgentProvider({ children }: { children: ReactNode }) {
+  const voice = useVoiceAgentEngine();
+  return createElement(VoiceAgentContext.Provider, { value: voice }, children);
+}
+
 export function useVoiceAgent() {
+  const voice = useContext(VoiceAgentContext);
+  if (!voice) throw new Error("useVoiceAgent must be used inside VoiceAgentProvider");
+  return voice;
+}
+
+function useVoiceAgentEngine() {
   const [supported, setSupported] = useState({ stt: false, tts: false });
   const [listening, setListening] = useState(false); // mic open
   const [alwaysOn, setAlwaysOn] = useState(false);
@@ -52,6 +76,7 @@ export function useVoiceAgent() {
   const [thinking, setThinking] = useState(false);
   const [speaking, setSpeaking] = useState(false);
   const [interim, setInterim] = useState("");
+  const [lastError, setLastError] = useState<string | null>(null);
   const [log, setLog] = useState<ChatEntry[]>([]);
 
   const historyRef = useRef<Message[]>([]);
@@ -157,7 +182,10 @@ export function useVoiceAgent() {
       webkitSpeechRecognition?: SpeechRecognitionCtor;
     };
     const Ctor = w.SpeechRecognition || w.webkitSpeechRecognition;
-    if (!Ctor) return;
+    if (!Ctor) {
+      setLastError("This browser does not support wake listening.");
+      return false;
+    }
     const rec = new Ctor();
     rec.lang = "en-US";
     rec.continuous = alwaysOnRef.current;
@@ -200,10 +228,14 @@ export function useVoiceAgent() {
     };
     recRef.current = rec;
     setListening(true);
+    setLastError(null);
     try {
       rec.start();
+      return true;
     } catch {
-      /* already started */
+      setListening(false);
+      setLastError("Click once to allow Hey Kai microphone access.");
+      return false;
     }
   }, [onFinal]);
 
@@ -222,15 +254,24 @@ export function useVoiceAgent() {
     setListening(false);
   }, []);
 
+  const startAlwaysOn = useCallback(() => {
+    if (alwaysOnRef.current) return;
+    alwaysOnRef.current = true;
+    setAlwaysOn(true);
+    const started = startRecognition();
+    if (!started) {
+      alwaysOnRef.current = false;
+      setAlwaysOn(false);
+    }
+  }, [startRecognition]);
+
   const toggleAlwaysOn = useCallback(() => {
     if (alwaysOnRef.current) {
       stopListening();
     } else {
-      alwaysOnRef.current = true;
-      setAlwaysOn(true);
-      startRecognition();
+      startAlwaysOn();
     }
-  }, [startRecognition, stopListening]);
+  }, [startAlwaysOn, stopListening]);
 
   // Cleanup on unmount.
   useEffect(
@@ -268,9 +309,11 @@ export function useVoiceAgent() {
     awake,
     thinking,
     speaking,
+    lastError,
     interim,
     log,
     startListening,
+    startAlwaysOn,
     stopListening,
     toggleAlwaysOn,
     sendText,

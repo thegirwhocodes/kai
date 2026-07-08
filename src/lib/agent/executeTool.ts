@@ -20,7 +20,9 @@ export async function executeToolCall(call: ToolCall): Promise<string> {
   if (
     call.name === "get_schedule" ||
     call.name === "search_calendar" ||
-    call.name === "schedule_event"
+    call.name === "schedule_event" ||
+    call.name === "create_calendar" ||
+    call.name === "reschedule_calendar_events"
   ) {
     return executeCalendarTool(call);
   }
@@ -167,7 +169,11 @@ async function executeCalendarTool(call: ToolCall): Promise<string> {
       ? "free"
       : call.name === "search_calendar"
         ? "search"
-        : "schedule";
+        : call.name === "schedule_event"
+          ? "schedule"
+          : call.name === "create_calendar"
+            ? "create_calendar"
+            : "reschedule_spaced";
   const payload =
     action === "free"
       ? {
@@ -183,8 +189,26 @@ async function executeCalendarTool(call: ToolCall): Promise<string> {
             pastDays: input.pastDays,
             futureDays: input.futureDays,
             query: input.query,
-            maxResults: input.maxResults,
+          maxResults: input.maxResults,
+        }
+      : action === "create_calendar"
+        ? {
+            action,
+            summary: input.summary,
           }
+        : action === "reschedule_spaced"
+          ? {
+              action,
+              sourceTimeMin: input.sourceTimeMin,
+              sourceTimeMax: input.sourceTimeMax,
+              targetTimeMin: input.targetTimeMin,
+              targetTimeMax: input.targetTimeMax,
+              calendarId: input.calendarId,
+              dayStartHour: input.dayStartHour,
+              dayEndHour: input.dayEndHour,
+              gapMinutes: input.gapMinutes,
+              apply: input.apply === true,
+            }
       : {
           action,
           summary: input.summary,
@@ -222,6 +246,24 @@ async function executeCalendarTool(call: ToolCall): Promise<string> {
         )
         .join("; ");
       return `Calendar window ${fmt(data.timeMin)} to ${fmt(data.timeMax)}. Events: ${events || "none"}.`;
+    }
+    if (action === "create_calendar") {
+      return `Calendar ready: ${data.calendar?.summary} (${data.calendar?.id}).`;
+    }
+    if (action === "reschedule_spaced") {
+      const plan = (data.plan ?? [])
+        .map(
+          (m: {
+            summary: string;
+            oldStart: string;
+            oldEnd: string;
+            newStart: string;
+            newEnd: string;
+          }) =>
+            `${m.summary}: ${fmt(m.oldStart)}-${fmt(m.oldEnd)} -> ${fmt(m.newStart)}-${fmt(m.newEnd)}`,
+        )
+        .join("; ");
+      return `${data.applied ? "Applied" : "Preview"} reschedule: ${plan || "no timed events found or no room in target window"}.`;
     }
     return `Scheduled "${data.created?.summary}" at ${fmt(data.created?.start)}.`;
   } catch (e) {

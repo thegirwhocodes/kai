@@ -21,6 +21,10 @@ Current shipped direction:
 - Resolve across playlists, tracks, albums, and artists.
 - Play tracks with `uris`.
 - Play playlists/albums/artists with `context_uri`.
+- Ship named modes:
+  - **Lock-in waves**: query `deep focus binaural beats instrumental study music 40Hz`.
+  - **Christian lofi**: query `Christian lofi instrumental`, which should find Naomi's playlist first if it exists in her Spotify account.
+  - **Quiet lofi**: query `lofi instrumental study beats`.
 
 Needed Spotify scopes:
 
@@ -107,6 +111,18 @@ Do not claim "scientifically better." Claim personalization:
 Kai's differentiator:
 
 - "Play what helps Naomi focus on this kind of work at this time of day."
+
+## Ali Abdaal-style Study With Me Sound
+
+Search did not surface a reliable official track list for Ali Abdaal's Study With Me videos. The product-safe move is to imitate the functional qualities Naomi likes rather than claiming to use Ali's actual music:
+
+- lyric-free instrumental music,
+- steady low-distraction pulse,
+- ambient pads or lofi texture,
+- "brainwave" search language such as binaural beats, gamma, or 40 Hz when searching Spotify,
+- no dramatic vocals, hooks, or worship-leading dynamics during focus blocks.
+
+Kai now maps phrases like "Ali-style study music," "brain waves," "40 Hz," "binaural," or "lock-in music" to a Spotify search for `deep focus binaural beats instrumental study music 40Hz`. This gives the right intent while staying legally and technically safe.
 
 ## Sources
 

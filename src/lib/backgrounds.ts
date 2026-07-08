@@ -53,21 +53,26 @@ export const BACKGROUNDS: Background[] = [
       "radial-gradient(circle at 72% 18%, rgba(246, 211, 189, 0.58) 0%, rgba(246, 211, 189, 0) 29%), radial-gradient(circle at 15% 80%, rgba(149, 218, 255, 0.27) 0%, rgba(149, 218, 255, 0) 34%), linear-gradient(145deg, #1d2440 0%, #6d8dd7 54%, #f6d3bd 116%)",
   },
   {
-    id: "sunset-hills",
-    name: "Sunset Hills",
+    id: "late-night-desk",
+    name: "Late Desk",
     kind: "image",
-    value: "/backgrounds/ghibli-sunset.jpg",
+    value: "/backgrounds/late-night-desk.jpg",
   },
   {
-    id: "pink-clouds",
-    name: "Pink Clouds",
+    id: "sunlit-bookshelf",
+    name: "Sunlit Study",
     kind: "image",
-    value: "/backgrounds/pink-clouds.jpg",
+    value: "/backgrounds/sunlit-bookshelf.jpg",
   },
-  { id: "pink-bloom", name: "Pink Bloom", kind: "image", value: "/backgrounds/pink-bloom.jpg" },
-  { id: "ghibli-forest", name: "Forest Glade", kind: "image", value: "/backgrounds/ghibli-forest.jpg" },
-  { id: "beach-dusk", name: "Quiet Shore", kind: "image", value: "/backgrounds/beach-dusk.jpg" },
-  { id: "starry-night", name: "Starry Night", kind: "image", value: "/backgrounds/starry-night.jpg" },
+  { id: "library-lamps", name: "Library Lamps", kind: "image", value: "/backgrounds/library-lamps.jpg" },
+  { id: "window-lamp", name: "Window Lamp", kind: "image", value: "/backgrounds/window-lamp.jpg" },
+  {
+    id: "quiet-writing-desk",
+    name: "Quiet Writing",
+    kind: "image",
+    value: "/backgrounds/quiet-writing-desk.jpg",
+  },
+  { id: "plant-desk", name: "Plant Desk", kind: "image", value: "/backgrounds/plant-desk.jpg" },
 ];
 
 export const DEFAULT_BACKGROUND = BACKGROUNDS[0].value;

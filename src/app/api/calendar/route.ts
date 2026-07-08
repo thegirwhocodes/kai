@@ -2,8 +2,12 @@ import { NextResponse } from "next/server";
 import {
   calendarConfigured,
   createEvent,
+  ensureCalendar,
   freeSlots,
+  listCalendars,
   listEvents,
+  planSpacedReschedule,
+  updateEventTime,
 } from "@/lib/google/calendar";
 
 export const runtime = "nodejs";
@@ -11,7 +15,8 @@ export const runtime = "nodejs";
 // Calendar actions for Kai's agent. The browser never sees Google secrets — it
 // posts an action here and gets back plain data the agent can reason about.
 //
-// Body: { action: "schedule" | "list" | "free", ... }
+// Body: { action: "schedule" | "list" | "free" | "list_calendars" |
+// "create_calendar" | "reschedule_spaced", ... }
 
 export async function POST(req: Request) {
   if (!calendarConfigured()) {
@@ -32,9 +37,27 @@ export async function POST(req: Request) {
 
   try {
     if (action === "list") {
-      const { timeMin, timeMax } = body as { timeMin: string; timeMax: string };
-      const events = await listEvents(timeMin, timeMax);
+      const { timeMin, timeMax, calendarId } = body as {
+        timeMin: string;
+        timeMax: string;
+        calendarId?: string;
+      };
+      const events = await listEvents(timeMin, timeMax, calendarId);
       return NextResponse.json({ events });
+    }
+
+    if (action === "list_calendars") {
+      const calendars = await listCalendars();
+      return NextResponse.json({ calendars });
+    }
+
+    if (action === "create_calendar") {
+      const { summary } = body as { summary: string };
+      if (!summary?.trim()) {
+        return NextResponse.json({ error: "missing_summary" }, { status: 400 });
+      }
+      const calendar = await ensureCalendar(summary);
+      return NextResponse.json({ calendar });
     }
 
     if (action === "search") {
@@ -85,16 +108,68 @@ export async function POST(req: Request) {
     }
 
     if (action === "schedule") {
-      const { summary, start, end } = body as {
+      const { summary, start, end, calendarId } = body as {
         summary: string;
         start: string;
         end: string;
+        calendarId?: string;
       };
       if (!summary || !start || !end) {
         return NextResponse.json({ error: "missing_fields" }, { status: 400 });
       }
-      const created = await createEvent({ summary, start, end });
+      const created = await createEvent({ summary, start, end }, calendarId);
       return NextResponse.json({ created });
+    }
+
+    if (action === "reschedule_spaced") {
+      const {
+        sourceTimeMin,
+        sourceTimeMax,
+        targetTimeMin,
+        targetTimeMax,
+        calendarId,
+        apply,
+        dayStartHour,
+        dayEndHour,
+        gapMinutes,
+      } = body as {
+        sourceTimeMin: string;
+        sourceTimeMax: string;
+        targetTimeMin: string;
+        targetTimeMax: string;
+        calendarId?: string;
+        apply?: boolean;
+        dayStartHour?: number;
+        dayEndHour?: number;
+        gapMinutes?: number;
+      };
+      if (!sourceTimeMin || !sourceTimeMax || !targetTimeMin || !targetTimeMax) {
+        return NextResponse.json({ error: "missing_fields" }, { status: 400 });
+      }
+      const events = await listEvents(sourceTimeMin, sourceTimeMax, calendarId);
+      const busy = await listEvents(targetTimeMin, targetTimeMax, calendarId);
+      const plan = planSpacedReschedule({
+        events,
+        busy,
+        targetStart: targetTimeMin,
+        targetEnd: targetTimeMax,
+        dayStartHour: clamp(dayStartHour ?? 9, 0, 23),
+        dayEndHour: clamp(dayEndHour ?? 18, 1, 24),
+        gapMinutes: clamp(gapMinutes ?? 30, 0, 240),
+      });
+      if (!apply) return NextResponse.json({ plan, applied: false });
+      const updated = [];
+      for (const move of plan) {
+        updated.push(
+          await updateEventTime(
+            move.calendarId,
+            move.id,
+            move.newStart,
+            move.newEnd,
+          ),
+        );
+      }
+      return NextResponse.json({ plan, updated, applied: true });
     }
 
     return NextResponse.json({ error: "unknown_action" }, { status: 400 });

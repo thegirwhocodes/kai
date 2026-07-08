@@ -179,6 +179,7 @@ export interface AgentSettings {
   autoStartDelaySec: number; // grace period before the next block begins
   soundAlerts: boolean; // chime on start/end
   voiceAlerts: boolean; // Kai speaks each transition aloud
+  wakeListening: boolean; // keep Hey Kai listening when the app is open
   background: string; // CSS gradient preset, or an image URL
 }
 
@@ -194,5 +195,6 @@ export const DEFAULT_SETTINGS: AgentSettings = {
   autoStartDelaySec: 5,
   soundAlerts: true,
   voiceAlerts: true,
+  wakeListening: true,
   background: DEFAULT_BACKGROUND,
 };

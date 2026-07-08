@@ -109,6 +109,9 @@ export function VoicePanel() {
             {wake.alwaysOn ? "On" : "Off"}
           </button>
         </div>
+        {wake.lastError && (
+          <p className="mt-2 text-xs leading-5 text-[#ffd9c2]">{wake.lastError}</p>
+        )}
         {wake.interim && (
           <p className="mt-2 text-xs italic" style={{ color: "var(--muted)" }}>
             {wake.interim}

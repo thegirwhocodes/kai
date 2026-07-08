@@ -184,6 +184,42 @@ export const AGENT_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: "create_calendar",
+    description:
+      "Create or find a Google Calendar by name. Use when the user asks for calendars like Savvy, Music, Content Creation, etc.",
+    input_schema: {
+      type: "object",
+      properties: {
+        summary: { type: "string", description: "Calendar name." },
+      },
+      required: ["summary"],
+    },
+  },
+  {
+    name: "reschedule_calendar_events",
+    description:
+      "Preview or apply a spaced reschedule of timed events from one date range into another. Defaults to preview only; set apply=true only when the user clearly confirms the move.",
+    input_schema: {
+      type: "object",
+      properties: {
+        sourceTimeMin: { type: "string", description: "ISO start of source range." },
+        sourceTimeMax: { type: "string", description: "ISO end of source range." },
+        targetTimeMin: { type: "string", description: "ISO start of target range." },
+        targetTimeMax: { type: "string", description: "ISO end of target range." },
+        calendarId: { type: "string", description: "Optional calendar id; defaults to primary." },
+        dayStartHour: { type: "integer", description: "Default 9." },
+        dayEndHour: { type: "integer", description: "Default 18." },
+        gapMinutes: { type: "integer", description: "Gap between moved events. Default 30." },
+        apply: {
+          type: "boolean",
+          description:
+            "False for preview. True applies the move to Google Calendar.",
+        },
+      },
+      required: ["sourceTimeMin", "sourceTimeMax", "targetTimeMin", "targetTimeMax"],
+    },
+  },
+  {
     name: "search_email_history",
     description:
       "Search the user's Gmail history with Gmail query syntax. Use this when the user asks about old emails, wants context before editing, or needs to find a thread. Returns ids that can be passed to get_email.",

@@ -1,7 +1,7 @@
 # Kai
 
 <p align="center">
-  <img src="public/backgrounds/ghibli-forest.jpg" alt="Kai focus environment" width="100%" />
+  <img src="public/backgrounds/library-lamps.jpg" alt="Kai focus environment" width="100%" />
 </p>
 
 An adaptive focus coach with a timer, a voice loop, and an engine that changes the session length based on how the user is actually doing.
@@ -26,7 +26,7 @@ Kai is not a 25-minute Pomodoro clone. The research behind the build showed that
 - Supports opt-in "Hey Kai" wake listening while the app tab is open.
 - Shares one client-side store between the timer UI and the voice agent, so voice commands and clicks operate the same state.
 - Uses a Sabi-style conversational voice loop: tap once, speak naturally, pause, get an answer.
-- Presents the product as a calm visual environment, with painterly backgrounds, a large clock, dock controls, tasks, settings, and voice.
+- Presents the product as a calm visual environment, with study-room photo backgrounds, a large clock, dock controls, tasks, settings, and voice.
 
 ## Architecture
 
@@ -60,6 +60,7 @@ See [`docs/RESEARCH.md`](docs/RESEARCH.md) for the verified research pass.
 - [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md)
 - [`docs/ADS_AND_TESTING_RESEARCH.md`](docs/ADS_AND_TESTING_RESEARCH.md)
 - [`docs/AI_MUSIC_AND_SPOTIFY_RESEARCH.md`](docs/AI_MUSIC_AND_SPOTIFY_RESEARCH.md)
+- [`docs/BRAND_VISUAL_RESEARCH.md`](docs/BRAND_VISUAL_RESEARCH.md)
 
 ## Stack
 

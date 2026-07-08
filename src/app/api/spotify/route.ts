@@ -7,6 +7,7 @@ import {
   searchUserMusic,
   spotifyConfigured,
 } from "@/lib/spotify/spotify";
+import { resolveMusicMode } from "@/lib/music/modes";
 
 export const runtime = "nodejs";
 
@@ -36,8 +37,10 @@ export async function POST(req: Request) {
     }
 
     if (body.action === "play") {
-      const query = String(body.query ?? "").trim();
-      const allowCatalog = body.allowCatalog === true;
+      const rawQuery = String(body.query ?? "").trim();
+      const mode = resolveMusicMode(rawQuery);
+      const query = mode?.query ?? rawQuery;
+      const allowCatalog = body.allowCatalog === true || mode?.allowCatalog === true;
       if (!query) {
         return NextResponse.json({ error: "missing_query" }, { status: 400 });
       }
@@ -49,11 +52,11 @@ export async function POST(req: Request) {
       // 2) Only fall through to the catalog when explicitly allowed.
       if (!item) {
         if (!allowCatalog) {
-          return NextResponse.json({ notInLibrary: true, query });
+          return NextResponse.json({ notInLibrary: true, query: rawQuery || query });
         }
         item = await searchSpotifyCatalog(query);
         if (!item) {
-          return NextResponse.json({ notFound: true, query });
+          return NextResponse.json({ notFound: true, query: rawQuery || query });
         }
       }
 
@@ -72,7 +75,12 @@ export async function POST(req: Request) {
         throw e;
       }
 
-      return NextResponse.json({ played: item, source: item.source });
+      return NextResponse.json({
+        played: item,
+        source: item.source,
+        mode: mode?.id,
+        query,
+      });
     }
 
     return NextResponse.json({ error: "unknown_action" }, { status: 400 });

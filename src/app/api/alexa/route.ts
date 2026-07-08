@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { buildKaiRecommendation } from "@/lib/life/recommend";
+import { resolveMusicMode } from "@/lib/music/modes";
 import { commandForRecommendation, pushKaiCommand } from "@/lib/server/commandQueue";
 import {
   getDevices,
@@ -388,7 +389,9 @@ function speakStarted(recommendation: KaiRecommendation): string {
 }
 
 async function playSpotifyFromAlexa(query: string, allowCatalog: boolean) {
-  const normalizedQuery = query.trim() || "deep focus instrumental";
+  const mode = resolveMusicMode(query);
+  const normalizedQuery = mode?.query ?? (query.trim() || "deep focus instrumental");
+  const canSearchCatalog = allowCatalog || mode?.allowCatalog === true;
   if (!spotifyConfigured()) {
     return alexaResponse("Spotify is not connected to Kai yet.", {
       shouldEndSession: true,
@@ -400,7 +403,7 @@ async function playSpotifyFromAlexa(query: string, allowCatalog: boolean) {
     let item: SpotifyPlayable | null = fromUserMusic;
 
     if (!item) {
-      if (!allowCatalog) {
+      if (!canSearchCatalog) {
         return alexaResponse(
           `I did not find ${normalizedQuery} in your Spotify library or playlists. Should I search wider Spotify?`,
           {
@@ -436,7 +439,7 @@ async function playSpotifyFromAlexa(query: string, allowCatalog: boolean) {
     }
 
     return alexaResponse(
-      `Playing ${item.kind} ${item.name}${item.subtitle ? ` by ${item.subtitle}` : ""} from ${
+      `Playing ${mode ? `${mode.name}, ` : ""}${item.kind} ${item.name}${item.subtitle ? ` by ${item.subtitle}` : ""} from ${
         item.source === "library" ? "your Spotify library" : "Spotify"
       }.`,
       { shouldEndSession: true },
@@ -473,7 +476,7 @@ function brainFmFallbackQuery(query: string): string {
 }
 
 function musicRequestAllowsCatalog(query: string): boolean {
-  return /\b(spotify|playlist|radio|mix|lofi|lo-fi|instrumental|focus|study|work|ambient|worship|christian|deep work|brown noise|white noise|rain)\b/i.test(
+  return /\b(spotify|playlist|radio|mix|lofi|lo-fi|instrumental|focus|study|work|ambient|worship|christian|deep work|brown noise|white noise|rain|ali|abdaal|brainwave|brainwaves|binaural|gamma|40hz|40 hz|lock in)\b/i.test(
     query,
   );
 }
