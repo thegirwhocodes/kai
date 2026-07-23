@@ -129,6 +129,45 @@ export interface Block {
   focusRating?: 1 | 2 | 3 | 4 | 5;
   /** Number of times the user paused or got interrupted during the block. */
   interruptions: number;
+  /** If this block belongs to a lock-in commitment, its id. */
+  lockInId?: string;
+}
+
+/** One entry in a lock-in plan: a focus or break block of a fixed length. */
+export interface PlannedBlock {
+  kind: BlockKind;
+  sec: number;
+}
+
+/** Live progress of an in-flight lock-in, for the UI and the agent state. */
+export interface LockInProgress {
+  totalSec: number;
+  consumedSec: number;
+  focusDone: number;
+  focusTotal: number;
+  blockIndex: number;
+  blockCount: number;
+  current: PlannedBlock | null;
+  next: PlannedBlock | null;
+}
+
+/**
+ * A "lock-in": the user commits to a total block of time (focus + breaks), and
+ * Kai lays out the whole pomodoro sequence up front and runs it hands-free to
+ * the finish. This is the true-Pomodoro spirit — commit to a chunk, work it in
+ * intervals, see it through — rather than an endless focus/break treadmill.
+ */
+export interface LockIn {
+  id: string;
+  /** Total committed budget in seconds (focus + breaks combined). */
+  totalSec: number;
+  startedAt: number;
+  /** The laid-out sequence of blocks that fills the budget, ending on focus. */
+  plan: PlannedBlock[];
+  /** Index in `plan` of the block currently running or last started. */
+  index: number;
+  /** Optional task this whole lock-in is aimed at. */
+  taskId?: string;
 }
 
 export interface Session {
@@ -190,7 +229,9 @@ export const DEFAULT_SETTINGS: AgentSettings = {
   blocksBeforeLongBreak: 4,
   minFocusSec: 10 * 60,
   maxFocusSec: 50 * 60,
-  adaptive: true,
+  // Classic Pomodoro by default: the user's own focus/break lengths, fully
+  // predictable and controllable. Adaptive is an opt-in "let Kai tune it" mode.
+  adaptive: false,
   autoStart: true,
   autoStartDelaySec: 5,
   soundAlerts: true,

@@ -171,6 +171,25 @@ export function decideBreakBlock(
   const longDue = ctx.focusStreak > 0 &&
     ctx.focusStreak % settings.blocksBeforeLongBreak === 0;
 
+  // Classic Pomodoro: use the user's exact break lengths, no shaping. Short is
+  // short, long comes every N blocks. Predictable and fully controllable.
+  if (!settings.adaptive) {
+    if (longDue) {
+      const mins = Math.max(1, Math.round(settings.longBreakSec / 60));
+      return {
+        kind: "long_break",
+        plannedSec: settings.longBreakSec,
+        rationale: `That's ${ctx.focusStreak} blocks done — take your ${minutesText(mins)} long break and step away.`,
+      };
+    }
+    const mins = Math.max(1, Math.round(settings.shortBreakSec / 60));
+    return {
+      kind: "short_break",
+      plannedSec: settings.shortBreakSec,
+      rationale: `${minutesText(mins)} break. Reset before the next block.`,
+    };
+  }
+
   if (longDue) {
     const plannedSec = snapToPresetSeconds(
       settings.longBreakSec,

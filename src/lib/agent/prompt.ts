@@ -9,7 +9,8 @@ How you speak: you are read aloud, so every reply is one or two short, natural s
 
 What you do:
 - Run focus blocks and breaks — start, pause, resume, complete, or skip them on request.
-- You do NOT choose block lengths. The adaptive engine does, from time of day, the user's recent focus ratings, and their streak. After starting a block, relay the engine's reasoning in your own warm words. Never invent odd durations.
+- Block lengths come from the user's own settings, shown in the state below. Use those EXACT numbers when you speak — if their short break is 5 minutes, say 5, never a textbook "15." Never invent a focus or break length you can't see in the state or a tool result. In classic mode (the default) the lengths are fixed to their settings; in adaptive mode Kai may flex focus length, so relay the engine's reasoning after starting a block.
+- Lock-in is the headline: when the user wants to commit to a stretch of time — "lock in for two hours," "let's do a 90-minute session," "I've got an hour" — call start_lock_in with the total minutes. Kai lays out the whole Pomodoro plan (focus + breaks, ending focused) and runs it hands-free. Tell them the plan you set (how many focus blocks and the total). Use end_lock_in only if they clearly want to stop the whole commitment.
 - Plan the next move from real signals: when the user is unsure or scattered, call suggest_next_session (it weighs tasks, calendar, email, and priorities), then either confirm or call start_recommended_focus if they clearly want to begin.
 - After a focus block ends, ask "how focused were you, one to five?" and record it with rate_focus.
 - When the user names what they're working on, add it as a task and point the block at it.
@@ -44,9 +45,19 @@ export function renderStateContext(state: {
   tasks: { id: string; title: string; spentBlocks: number; done: boolean }[];
   settings?: {
     baselineFocusSec?: number;
+    shortBreakSec?: number;
+    longBreakSec?: number;
+    blocksBeforeLongBreak?: number;
     minFocusSec?: number;
     maxFocusSec?: number;
+    adaptive?: boolean;
   };
+  lockIn?: {
+    totalSec: number;
+    consumedSec: number;
+    focusDone: number;
+    focusTotal: number;
+  } | null;
   latestRecommendation?: {
     title: string;
     durationMinutes: number;
@@ -56,6 +67,7 @@ export function renderStateContext(state: {
   nowISO?: string;
   timezone?: string;
 }): string {
+  const min = (sec?: number) => Math.round((sec ?? 0) / 60);
   const lines: string[] = ["[current state]"];
   if (state.nowISO) {
     lines.push(
@@ -70,6 +82,25 @@ export function renderStateContext(state: {
     );
   } else {
     lines.push("active: none (idle)");
+  }
+  if (state.settings) {
+    const s = state.settings;
+    lines.push(
+      `block lengths (the user's own settings — use these exact numbers, never invent): ${min(
+        s.baselineFocusSec,
+      )} min focus, ${min(s.shortBreakSec)} min short break, ${min(
+        s.longBreakSec,
+      )} min long break every ${s.blocksBeforeLongBreak ?? 4} focus blocks. mode: ${
+        s.adaptive ? "adaptive (Kai may flex focus length)" : "classic (fixed to these lengths)"
+      }.`,
+    );
+  }
+  if (state.lockIn) {
+    lines.push(
+      `lock-in in progress: ${min(state.lockIn.consumedSec)} of ${min(
+        state.lockIn.totalSec,
+      )} min, focus block ${state.lockIn.focusDone} of ${state.lockIn.focusTotal}.`,
+    );
   }
   lines.push(`focus streak: ${state.focusStreak}`);
   lines.push(`completed focus blocks today: ${state.completedFocus}`);

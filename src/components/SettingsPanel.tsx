@@ -88,49 +88,27 @@ export function SettingsPanel() {
       <p className="mb-2 text-xs" style={{ color: "var(--muted)" }}>
         Timing
       </p>
-      <div className="mb-4 flex flex-col gap-2">
-        <NumberRow
+      <div className="mb-4 flex flex-col gap-3">
+        <PresetRow
           label="Focus"
           value={Math.round(settings.baselineFocusSec / 60)}
-          min={5}
-          max={180}
-          unit="min"
+          presets={[15, 25, 30, 45, 50, 60, 90]}
           onChange={(minutes) => update({ baselineFocusSec: minutes * 60 })}
         />
-        <NumberRow
-          label="Minimum"
-          value={Math.round(settings.minFocusSec / 60)}
-          min={3}
-          max={Math.round(settings.maxFocusSec / 60)}
-          unit="min"
-          onChange={(minutes) => update({ minFocusSec: minutes * 60 })}
-        />
-        <NumberRow
-          label="Maximum"
-          value={Math.round(settings.maxFocusSec / 60)}
-          min={Math.round(settings.minFocusSec / 60)}
-          max={180}
-          unit="min"
-          onChange={(minutes) => update({ maxFocusSec: minutes * 60 })}
-        />
-        <NumberRow
+        <PresetRow
           label="Short break"
           value={Math.round(settings.shortBreakSec / 60)}
-          min={1}
-          max={60}
-          unit="min"
+          presets={[3, 5, 10, 15]}
           onChange={(minutes) => update({ shortBreakSec: minutes * 60 })}
         />
-        <NumberRow
+        <PresetRow
           label="Long break"
           value={Math.round(settings.longBreakSec / 60)}
-          min={5}
-          max={90}
-          unit="min"
+          presets={[10, 15, 20, 30]}
           onChange={(minutes) => update({ longBreakSec: minutes * 60 })}
         />
         <NumberRow
-          label="Long after"
+          label="Long break after"
           value={settings.blocksBeforeLongBreak}
           min={2}
           max={8}
@@ -138,13 +116,46 @@ export function SettingsPanel() {
           onChange={(blocks) => update({ blocksBeforeLongBreak: blocks })}
         />
         <NumberRow
-          label="Autostart"
+          label="Autostart delay"
           value={settings.autoStartDelaySec}
           min={0}
           max={60}
           unit="sec"
           onChange={(seconds) => update({ autoStartDelaySec: seconds })}
         />
+      </div>
+
+      {/* Adaptive engine — opt-in "let Kai tune it" mode. */}
+      <div className="mb-4 flex flex-col gap-2">
+        <Row
+          label="Adaptive: let Kai tune block lengths"
+          on={settings.adaptive}
+          onClick={() => update({ adaptive: !settings.adaptive })}
+        />
+        {settings.adaptive && (
+          <div className="flex flex-col gap-2 rounded-lg border border-white/10 p-2">
+            <p className="text-[11px] leading-4" style={{ color: "var(--muted)" }}>
+              When on, Kai flexes focus length within these bounds from your
+              time of day, streak, and focus ratings.
+            </p>
+            <NumberRow
+              label="Minimum focus"
+              value={Math.round(settings.minFocusSec / 60)}
+              min={3}
+              max={Math.round(settings.maxFocusSec / 60)}
+              unit="min"
+              onChange={(minutes) => update({ minFocusSec: minutes * 60 })}
+            />
+            <NumberRow
+              label="Maximum focus"
+              value={Math.round(settings.maxFocusSec / 60)}
+              min={Math.round(settings.minFocusSec / 60)}
+              max={180}
+              unit="min"
+              onChange={(minutes) => update({ maxFocusSec: minutes * 60 })}
+            />
+          </div>
+        )}
       </div>
 
       {/* Toggles */}
@@ -181,6 +192,71 @@ export function SettingsPanel() {
             className="mt-1 rounded-lg border border-white/15 px-3 py-2 text-xs transition hover:bg-white/10"
           >
             Enable notifications
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PresetRow({
+  label,
+  value,
+  presets,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  presets: number[];
+  onChange: (value: number) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const isPreset = presets.includes(value);
+  return (
+    <div className="rounded-lg border border-white/10 px-3 py-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs">{label}</span>
+        <span className="text-xs" style={{ color: "var(--muted)" }}>
+          {value} min
+        </span>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {presets.map((p) => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => {
+              setEditing(false);
+              onChange(p);
+            }}
+            className="rounded-full border px-3 py-1 text-xs transition"
+            style={{
+              borderColor:
+                value === p && !editing ? "var(--focus)" : "rgba(255,255,255,0.15)",
+              background:
+                value === p && !editing ? "rgba(251,122,142,0.15)" : "transparent",
+            }}
+          >
+            {p}
+          </button>
+        ))}
+        {editing || !isPreset ? (
+          <input
+            type="number"
+            min={1}
+            max={240}
+            autoFocus={editing}
+            value={value}
+            onChange={(e) => onChange(clamp(Number(e.target.value), 1, 240))}
+            className="w-14 rounded-full border border-white/30 bg-white/5 px-2 py-1 text-center text-xs outline-none"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="rounded-full border border-white/15 px-3 py-1 text-xs transition hover:bg-white/10"
+          >
+            custom
           </button>
         )}
       </div>

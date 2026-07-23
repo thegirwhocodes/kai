@@ -60,7 +60,9 @@ export function useAutopilot() {
           const store = useAgentStore.getState();
           // Bail if the user already started something else during the grace.
           if (store.activeBlock?.status === "running") return;
-          if (wasFocus) store.startBreak();
+          // In a lock-in, follow the committed plan to its finish.
+          if (store.lockIn) store.advanceLockIn();
+          else if (wasFocus) store.startBreak();
           else store.startNextFocus(store.lastFocusTaskId());
         }, Math.max(0, settings.autoStartDelaySec) * 1000);
       }

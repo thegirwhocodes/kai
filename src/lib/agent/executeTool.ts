@@ -67,6 +67,24 @@ export async function executeToolCall(call: ToolCall): Promise<string> {
       const rationale = useAgentStore.getState().lastDecisionRationale;
       return `Started a ${KIND_LABEL[block.kind]?.toLowerCase() ?? block.kind} of ${Math.round(block.plannedSec / 60)} min. Rationale: ${rationale}`;
     }
+    case "start_lock_in": {
+      const minutes = Number(input.minutes);
+      if (!(minutes >= 5)) return "Lock-in needs at least 5 minutes.";
+      const block = s.startLockIn(minutes, input.taskId as string | undefined);
+      if (!block) return "Could not build a lock-in plan for that length.";
+      const progress = useAgentStore.getState().lockInProgress();
+      const focusTotal = progress?.focusTotal ?? 0;
+      return `Locked in for ${minutes} min: ${focusTotal} focus block${
+        focusTotal === 1 ? "" : "s"
+      } with breaks between, ending focused. Started the first ${Math.round(
+        block.plannedSec / 60,
+      )} min focus block.`;
+    }
+    case "end_lock_in": {
+      if (!useAgentStore.getState().lockIn) return "No lock-in is active.";
+      s.endLockIn();
+      return "Ended the lock-in commitment.";
+    }
     case "pause": {
       if (!s.activeBlock || s.activeBlock.status !== "running")
         return "Nothing is running to pause.";
@@ -444,9 +462,14 @@ export function buildStateSnapshot() {
     })),
     settings: {
       baselineFocusSec: s.settings.baselineFocusSec,
+      shortBreakSec: s.settings.shortBreakSec,
+      longBreakSec: s.settings.longBreakSec,
+      blocksBeforeLongBreak: s.settings.blocksBeforeLongBreak,
       minFocusSec: s.settings.minFocusSec,
       maxFocusSec: s.settings.maxFocusSec,
+      adaptive: s.settings.adaptive,
     },
+    lockIn: s.lockInProgress(),
     latestRecommendation: s.latestRecommendation,
     lastRationale: s.lastDecisionRationale,
   };

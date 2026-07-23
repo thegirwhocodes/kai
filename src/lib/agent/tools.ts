@@ -52,6 +52,31 @@ export const AGENT_TOOLS: Anthropic.Tool[] = [
     input_schema: { type: "object", properties: {} },
   },
   {
+    name: "start_lock_in",
+    description:
+      "Commit to a total lock-in session of a given length. Kai lays out the whole Pomodoro plan (focus blocks + breaks, always ending on focus) across the budget and runs it hands-free to the finish. Use when the user names how long they want to work — 'lock in for 2 hours', 'a 90 minute session', 'I've got an hour'.",
+    input_schema: {
+      type: "object",
+      properties: {
+        minutes: {
+          type: "integer",
+          description: "Total session length in minutes (focus + breaks combined).",
+        },
+        taskId: {
+          type: "string",
+          description: "Optional task id to aim the whole lock-in at.",
+        },
+      },
+      required: ["minutes"],
+    },
+  },
+  {
+    name: "end_lock_in",
+    description:
+      "Drop the active lock-in commitment. Only use when the user clearly wants to stop the whole planned session.",
+    input_schema: { type: "object", properties: {} },
+  },
+  {
     name: "pause",
     description: "Pause the currently running block.",
     input_schema: { type: "object", properties: {} },

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Clock, greeting } from "@/components/Clock";
 import { Dock, type Panel } from "@/components/Dock";
 import { Quote } from "@/components/Quote";
+import { LockInBar, LockInChooser, LockInNext } from "@/components/LockIn";
 import { PlanPanel } from "@/components/PlanPanel";
 import { MusicPanel } from "@/components/MusicPanel";
 import { SettingsPanel } from "@/components/SettingsPanel";
@@ -48,6 +49,10 @@ function KaiApp() {
   const lastCompletedFocusId = useAgentStore((s) => s.lastCompletedFocusId);
   const startFocus = useAgentStore((s) => s.startNextFocus);
   const startBreak = useAgentStore((s) => s.startBreak);
+  const lockIn = useAgentStore((s) => s.lockIn);
+  const startLockIn = useAgentStore((s) => s.startLockIn);
+  const advanceLockIn = useAgentStore((s) => s.advanceLockIn);
+  const endLockIn = useAgentStore((s) => s.endLockIn);
   const pause = useAgentStore((s) => s.pause);
   const resume = useAgentStore((s) => s.resume);
   const complete = useAgentStore((s) => s.completeActive);
@@ -112,6 +117,14 @@ function KaiApp() {
     unlockAudio();
     startBreak();
   };
+  const beginLockIn = (minutes: number) => {
+    unlockAudio();
+    startLockIn(minutes, selectedTask);
+  };
+  const nextLockIn = () => {
+    unlockAudio();
+    advanceLockIn();
+  };
   const fullscreen = () => {
     if (typeof document === "undefined") return;
     if (!document.fullscreenElement) void document.documentElement.requestFullscreen?.();
@@ -156,27 +169,43 @@ function KaiApp() {
           <>
             <Clock />
             <p className="mt-5 text-xl font-light sm:text-2xl">{greeting()}</p>
-            <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
-              {latestRecommendation && (
-                <button onClick={beginRecommended} className="btn-primary">
-                  Start next
-                </button>
-              )}
-              <button onClick={beginFocus} className={latestRecommendation ? "btn-ghost" : "btn-primary"}>
-                Start focus
-              </button>
-              <button onClick={beginBreak} className="btn-ghost">
-                Take a break
-              </button>
-            </div>
-            <HeroPlan
-              recommendation={latestRecommendation}
-              loading={planning}
-              error={planError}
-              onRefresh={refreshPlan}
-              onStart={beginRecommended}
-              onOpenPlan={() => setPanel("plan")}
-            />
+            {lockIn ? (
+              // Mid lock-in, between blocks (autostart off): keep the plan going.
+              <>
+                <LockInBar />
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                  <LockInNext onNext={nextLockIn} />
+                  <button onClick={endLockIn} className="btn-ghost">
+                    End lock-in
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
+                  {latestRecommendation && (
+                    <button onClick={beginRecommended} className="btn-primary">
+                      Start next
+                    </button>
+                  )}
+                  <button onClick={beginFocus} className="btn-ghost">
+                    Quick focus
+                  </button>
+                  <button onClick={beginBreak} className="btn-ghost">
+                    Take a break
+                  </button>
+                </div>
+                <LockInChooser onStart={beginLockIn} />
+                <HeroPlan
+                  recommendation={latestRecommendation}
+                  loading={planning}
+                  error={planError}
+                  onRefresh={refreshPlan}
+                  onStart={beginRecommended}
+                  onOpenPlan={() => setPanel("plan")}
+                />
+              </>
+            )}
           </>
         ) : (
           <>
@@ -210,6 +239,7 @@ function KaiApp() {
                 Skip
               </button>
             </div>
+            <LockInBar />
           </>
         )}
 

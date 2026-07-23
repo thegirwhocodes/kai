@@ -7,11 +7,14 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { decideBreakBlock, decideFocusBlock } from "./adaptive";
+import { computeProgress, planLockIn } from "./lockIn";
 import {
   type AdaptiveContext,
   type AgentSettings,
   type Block,
   type KaiRecommendation,
+  type LockIn,
+  type LockInProgress,
   type Session,
   type Task,
   type TaskPriority,
@@ -36,6 +39,8 @@ interface StoreState {
   lastCompletedFocusId: string | null;
   /** Most recent life-aware recommendation from Kai's planner. */
   latestRecommendation: KaiRecommendation | null;
+  /** Active lock-in commitment, or null when running open-ended. */
+  lockIn: LockIn | null;
 
   // --- lifecycle ---
   ensureSession: () => Session;
@@ -48,6 +53,14 @@ interface StoreState {
   ) => Block;
   startRecommendedFocus: () => Block | null;
   startBreak: () => Block;
+  /** Commit to a total lock-in budget and start its first block. */
+  startLockIn: (totalMinutes: number, taskId?: string) => Block | null;
+  /** Advance to the next block in the active lock-in, or finish it. */
+  advanceLockIn: () => Block | null;
+  /** Drop the lock-in commitment (the current block keeps running). */
+  endLockIn: () => void;
+  /** Live progress of the active lock-in, or null. */
+  lockInProgress: () => LockInProgress | null;
   pause: () => void;
   resume: () => void;
   /** Mark the active block done (ran out or user said "done"). */
@@ -117,6 +130,7 @@ export const useAgentStore = create<StoreState>()(
       lastDecisionRationale: null,
       lastCompletedFocusId: null,
       latestRecommendation: null,
+      lockIn: null,
 
       ensureSession: () => {
         const existing = get().session;
@@ -225,6 +239,51 @@ export const useAgentStore = create<StoreState>()(
         return block;
       },
 
+      startLockIn: (totalMinutes, taskId) => {
+        const totalSec = Math.max(60, Math.round(totalMinutes * 60));
+        const { settings } = get();
+        const plan = planLockIn(totalSec, settings);
+        if (!plan.length) return null;
+        get().ensureSession();
+        const lockIn: LockIn = {
+          id: uid(),
+          totalSec,
+          startedAt: Date.now(),
+          plan,
+          index: 0,
+          taskId,
+        };
+        return beginPlannedBlock(set, get, lockIn, 0, taskId);
+      },
+
+      advanceLockIn: () => {
+        const lockIn = get().lockIn;
+        if (!lockIn) return null;
+        const next = lockIn.index + 1;
+        if (next >= lockIn.plan.length) {
+          get().endLockIn();
+          return null;
+        }
+        return beginPlannedBlock(set, get, lockIn, next, lockIn.taskId);
+      },
+
+      endLockIn: () => {
+        const lockIn = get().lockIn;
+        if (!lockIn) return;
+        const focusTotal = lockIn.plan.filter((b) => b.kind === "focus").length;
+        set({
+          lockIn: null,
+          lastDecisionRationale: `Lock-in complete — ${focusTotal} focus block${
+            focusTotal === 1 ? "" : "s"
+          } done. Proud of you.`,
+        });
+      },
+
+      lockInProgress: () => {
+        const { lockIn, activeBlock, remainingSec } = get();
+        return computeProgress(lockIn, activeBlock, remainingSec);
+      },
+
       pause: () => {
         const b = get().activeBlock;
         if (!b || b.status !== "running") return;
@@ -263,6 +322,8 @@ export const useAgentStore = create<StoreState>()(
         const b = get().activeBlock;
         if (!b) return;
         patchActive(set, get, { status: "abandoned", endedAt: Date.now() });
+        // In a lock-in, skipping this block rolls straight into the next one.
+        if (get().lockIn) get().advanceLockIn();
       },
 
       rateActiveFocus: (rating) => {
@@ -368,6 +429,55 @@ export const useAgentStore = create<StoreState>()(
     },
   ),
 );
+
+/**
+ * Start a specific planned block from a lock-in and record it as the active
+ * block. Length is fixed by the plan (not the adaptive engine), and the block
+ * is tagged with the lock-in id so progress can be measured.
+ */
+function beginPlannedBlock(
+  set: (partial: Partial<StoreState>) => void,
+  get: () => StoreState,
+  lockIn: LockIn,
+  index: number,
+  taskId?: string,
+): Block {
+  const session = get().ensureSession();
+  const planned = lockIn.plan[index];
+  const isFocus = planned.kind === "focus";
+  const mins = Math.max(1, Math.round(planned.sec / 60));
+  const focusDoneBefore = lockIn.plan
+    .slice(0, index)
+    .filter((b) => b.kind === "focus").length;
+  const focusTotal = lockIn.plan.filter((b) => b.kind === "focus").length;
+  const rationale = isFocus
+    ? `Focus block ${focusDoneBefore + 1} of ${focusTotal} — ${mins} minute${
+        mins === 1 ? "" : "s"
+      }. Let's lock in.`
+    : `${mins} minute${mins === 1 ? "" : "s"} ${
+        planned.kind === "long_break" ? "long break" : "break"
+      }. Reset before the next block.`;
+  const block: Block = {
+    id: uid(),
+    kind: planned.kind,
+    plannedSec: planned.sec,
+    elapsedSec: 0,
+    status: "running",
+    taskId: isFocus ? taskId : undefined,
+    startedAt: Date.now(),
+    interruptions: 0,
+    lockInId: lockIn.id,
+  };
+  const blocks = [...session.blocks, block];
+  set({
+    session: { ...session, blocks, currentBlockIndex: blocks.length - 1 },
+    activeBlock: block,
+    remainingSec: block.plannedSec,
+    lastDecisionRationale: rationale,
+    lockIn: { ...lockIn, index },
+  });
+  return block;
+}
 
 /** Apply a patch to the active block in both `activeBlock` and the session. */
 function patchActive(
