@@ -409,11 +409,23 @@ export const useAgentStore = create<StoreState>()(
       // users' tasks/sessions live in localStorage. Renaming it would orphan
       // their saved data. (The product is "Kai"; the storage key is legacy.)
       name: "pomodoro-agent",
+      version: 1,
       partialize: (s) => ({
         settings: s.settings,
         tasks: s.tasks,
         session: s.session,
       }),
+      // v0 -> v1: classic Pomodoro became the product default. The adaptive
+      // toggle had no UI before v1, so a persisted `adaptive: true` was never a
+      // deliberate choice — it's the stale old default. Flip it off once.
+      // Cast: migrate returns a partial; the merge() below fills any gaps with
+      // DEFAULT_SETTINGS at runtime, so a partial shape is safe here.
+      migrate: (persisted, version) =>
+        migratePersisted(persisted, version) as {
+          settings: AgentSettings;
+          tasks: Task[];
+          session: Session | null;
+        },
       // Default merge is shallow, which would let an OLD persisted `settings`
       // object (missing newer keys like autoStart) clobber the defaults. Deep-
       // merge settings so new fields get their defaults, while tasks/session are
@@ -429,6 +441,21 @@ export const useAgentStore = create<StoreState>()(
     },
   ),
 );
+
+/**
+ * Migrate persisted state across schema versions. Exported so it can be unit
+ * tested directly (the zustand persist wiring is hard to exercise in a test).
+ */
+export function migratePersisted(
+  persisted: unknown,
+  version: number,
+): Partial<StoreState> {
+  const p = { ...((persisted ?? {}) as Partial<StoreState>) };
+  if (version < 1 && p.settings) {
+    p.settings = { ...p.settings, adaptive: false };
+  }
+  return p;
+}
 
 /**
  * Start a specific planned block from a lock-in and record it as the active

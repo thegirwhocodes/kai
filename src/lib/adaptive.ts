@@ -80,12 +80,11 @@ export function decideFocusBlock(
   settings: AgentSettings,
 ): AdaptiveDecision {
   if (!settings.adaptive) {
+    const mins = Math.max(1, Math.round(settings.baselineFocusSec / 60));
     return {
       kind: "focus",
       plannedSec: settings.baselineFocusSec,
-      rationale: `Adaptive mode off — using your default ${Math.round(
-        settings.baselineFocusSec / 60,
-      )} minute block.`,
+      rationale: `Let's do a clean ${minutesText(mins)} focus block.`,
     };
   }
 
