@@ -15,7 +15,8 @@ Kai is not a 25-minute Pomodoro clone. The research behind the build showed that
 
 ## What it does
 
-- Starts focus blocks and breaks from the UI or by voice.
+- Runs a **lock-in**: commit a total stretch and Kai lays out the whole focus/break sequence up front, ending on focus, and runs it hands-free.
+- Starts focus blocks and breaks from the UI, the keyboard, or by voice.
 - Uses recent focus ratings, fatigue, streak, time of day, and calendar fit to choose the next block.
 - Explains each timing decision in plain English.
 - Searches calendar history forward and backward so Kai can reason about past and upcoming commitments.
@@ -26,7 +27,10 @@ Kai is not a 25-minute Pomodoro clone. The research behind the build showed that
 - Supports opt-in "Hey Kai" wake listening while the app tab is open.
 - Shares one client-side store between the timer UI and the voice agent, so voice commands and clicks operate the same state.
 - Uses a Sabi-style conversational voice loop: tap once, speak naturally, pause, get an answer.
+- Layers generated focus sounds (rain, brown noise, soft static, slow waves, night wind) with per-sound levels — no account, no network, keeps playing while you work.
+- Shows measured focus stats: today, a 7-day chart, day streak, completion rate, average rating, and your best-rated hour once there's enough data to say so honestly.
 - Presents the product as a calm visual environment, with study-room photo backgrounds, a large clock, dock controls, tasks, settings, and voice.
+- Works with no account: everything above is stored in the browser.
 
 ## Architecture
 
@@ -64,7 +68,7 @@ See [`docs/RESEARCH.md`](docs/RESEARCH.md) for the verified research pass.
 
 ## Stack
 
-Next.js, TypeScript, Zustand, Anthropic Claude, Groq Whisper route, browser audio APIs, and a custom adaptive timing engine.
+Next.js, TypeScript, Zustand, Groq (gpt-oss-120b for the agent, Whisper for speech), Web Audio for the generated focus sounds, and a custom timing engine.
 
 ## Run locally
 
@@ -74,7 +78,7 @@ npm install
 npm run dev
 ```
 
-The timer works without an API key. The voice agent needs `ANTHROPIC_API_KEY`; the faster transcription path uses Groq when configured. Calendar uses Google Calendar OAuth envs. Gmail history/drafts need Gmail OAuth scopes. Web search uses Brave, Tavily, Serper, or Google Custom Search when configured, and otherwise falls back to DuckDuckGo Instant Answer.
+The timer, focus sounds, tasks, and stats work with no API key at all. The voice agent and transcription both need `GROQ_API_KEY`. Calendar uses Google Calendar OAuth envs. Gmail history/drafts need Gmail OAuth scopes. Web search uses Brave, Tavily, Serper, or Google Custom Search when configured, and otherwise falls back to DuckDuckGo Instant Answer.
 
 Useful integration env vars:
 
@@ -83,6 +87,7 @@ Useful integration env vars:
 - Gmail scopes: `gmail.readonly` for history and `gmail.compose` for drafts
 - `BRAVE_SEARCH_API_KEY`, `TAVILY_API_KEY`, `SERPER_API_KEY`, or `GOOGLE_SEARCH_API_KEY` plus `GOOGLE_SEARCH_ENGINE_ID`
 - `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_REFRESH_TOKEN`
+- `KAI_OWNER_TOKEN` — required in production to use the connected accounts (calendar, email, Spotify, Alexa). Paste the same value into Customize → Connected accounts in your browser. Without it those routes are closed to everyone, which is what keeps a public deployment from planning against the owner's Google data.
 - `NEXT_PUBLIC_SITE_URL` for the canonical URL used by metadata and sitemap
 - `ALEXA_SKILL_ID`, `ALEXA_VERIFY_SIGNATURES` for the custom Alexa skill webhook
 
