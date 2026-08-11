@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isOwnerRequest } from "@/lib/server/owner";
 import {
   buildKaiRecommendation,
   type RecommendationState,
@@ -6,9 +7,15 @@ import {
 
 export const runtime = "nodejs";
 
-export async function GET() {
+// Planning is open to everyone, but only the owner's own browser gets planning
+// that reads the connected Google accounts. For everyone else this falls back
+// to task-only planning — never another person's calendar or inbox.
+
+export async function GET(req: Request) {
   try {
-    const recommendation = await buildKaiRecommendation();
+    const recommendation = await buildKaiRecommendation({
+      allowIntegrations: isOwnerRequest(req),
+    });
     return NextResponse.json({ recommendation });
   } catch (e) {
     return NextResponse.json(
@@ -35,6 +42,7 @@ export async function POST(req: Request) {
       state: body.state,
       horizonHours: body.horizonHours,
       intent: body.intent,
+      allowIntegrations: isOwnerRequest(req),
     });
     return NextResponse.json({ recommendation });
   } catch (e) {

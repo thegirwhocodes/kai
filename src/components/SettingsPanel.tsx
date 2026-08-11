@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { BACKGROUNDS } from "@/lib/backgrounds";
 import { notificationsEnabled, unlockAudio } from "@/lib/alerts";
+import { getOwnerToken, setOwnerToken } from "@/lib/ownerClient";
 import { useAgentStore } from "@/lib/store";
+import { SHORTCUTS } from "@/lib/useKeyboard";
 
 export function SettingsPanel() {
   const settings = useAgentStore((s) => s.settings);
@@ -12,12 +14,42 @@ export function SettingsPanel() {
   const [notifOn, setNotifOn] = useState(
     typeof window !== "undefined" && notificationsEnabled(),
   );
+  const [ownerToken, setOwnerTokenInput] = useState(() => getOwnerToken());
+  const [saved, setSaved] = useState(false);
 
   return (
     <div
       className="max-h-[76vh] w-full overflow-y-auto rounded-lg border border-white/12 p-4 shadow-[0_28px_90px_rgba(0,0,0,0.58)] backdrop-blur-2xl"
       style={{ background: "rgba(18, 15, 31, 0.96)" }}
     >
+      {/* Who this room belongs to. */}
+      <p className="mb-2 text-xs" style={{ color: "var(--muted)" }}>
+        You
+      </p>
+      <div className="mb-5 flex flex-col gap-2">
+        <label className="flex flex-col gap-1.5 rounded-lg border border-white/10 px-3 py-2">
+          <span className="text-xs">What Kai calls you</span>
+          <input
+            value={settings.userName}
+            onChange={(e) => update({ userName: e.target.value.slice(0, 40) })}
+            placeholder="Your name"
+            className="rounded-md border border-white/15 bg-white/5 px-2 py-1.5 text-xs outline-none transition focus:border-white/40"
+          />
+        </label>
+        <label className="flex flex-col gap-1.5 rounded-lg border border-white/10 px-3 py-2">
+          <span className="text-xs">What matters right now</span>
+          <input
+            value={settings.priorities}
+            onChange={(e) => update({ priorities: e.target.value.slice(0, 200) })}
+            placeholder="Thesis, job applications, fitness"
+            className="rounded-md border border-white/15 bg-white/5 px-2 py-1.5 text-xs outline-none transition focus:border-white/40"
+          />
+          <span className="text-[11px] leading-4" style={{ color: "var(--muted)" }}>
+            Comma separated. Kai weights matching tasks first when it plans.
+          </span>
+        </label>
+      </div>
+
       <div className="mb-4">
         <h2 className="text-sm font-medium" style={{ color: "var(--muted)" }}>
           Ambient worlds
@@ -195,6 +227,76 @@ export function SettingsPanel() {
           </button>
         )}
       </div>
+
+      {/* Strip the room back to just the timer. */}
+      <p className="mb-2 mt-4 text-xs" style={{ color: "var(--muted)" }}>
+        Room
+      </p>
+      <div className="flex flex-col gap-2">
+        <Row
+          label="Show the clock"
+          on={settings.showClock}
+          onClick={() => update({ showClock: !settings.showClock })}
+        />
+        <Row
+          label="Show the greeting"
+          on={settings.showGreeting}
+          onClick={() => update({ showGreeting: !settings.showGreeting })}
+        />
+        <Row
+          label="Show the quote"
+          on={settings.showQuote}
+          onClick={() => update({ showQuote: !settings.showQuote })}
+        />
+      </div>
+
+      {/* Connected accounts belong to whoever deployed this Kai, so they're
+          unlocked per-browser with a token rather than served to every visitor. */}
+      <details className="mt-4 rounded-lg border border-white/10 px-3 py-2">
+        <summary className="cursor-pointer text-xs">Connected accounts</summary>
+        <p className="mt-2 text-[11px] leading-4" style={{ color: "var(--muted)" }}>
+          Calendar, email, and Spotify run on this deployment&rsquo;s own
+          accounts, so they stay locked unless you hold the owner key. The
+          timer, focus sounds, tasks, and stats never need it.
+        </p>
+        <div className="mt-2 flex gap-2">
+          <input
+            type="password"
+            value={ownerToken}
+            onChange={(e) => setOwnerTokenInput(e.target.value)}
+            placeholder="Owner key"
+            className="flex-1 rounded-md border border-white/15 bg-white/5 px-2 py-1.5 text-xs outline-none transition focus:border-white/40"
+          />
+          <button
+            type="button"
+            onClick={() => {
+              setOwnerToken(ownerToken);
+              setSaved(true);
+              setTimeout(() => setSaved(false), 1500);
+            }}
+            className="rounded-md border border-white/15 px-2.5 py-1.5 text-xs transition hover:bg-white/10"
+          >
+            {saved ? "Saved" : "Save"}
+          </button>
+        </div>
+      </details>
+
+      <details className="mt-2 rounded-lg border border-white/10 px-3 py-2">
+        <summary className="cursor-pointer text-xs">Keyboard shortcuts</summary>
+        <ul className="mt-2 flex flex-col gap-1">
+          {SHORTCUTS.map((s) => (
+            <li
+              key={s.keys}
+              className="flex items-center justify-between gap-3 text-[11px]"
+            >
+              <span style={{ color: "var(--muted)" }}>{s.action}</span>
+              <kbd className="rounded border border-white/20 bg-white/5 px-1.5 py-0.5 font-sans">
+                {s.keys}
+              </kbd>
+            </li>
+          ))}
+        </ul>
+      </details>
     </div>
   );
 }

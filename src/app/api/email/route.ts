@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { NOT_CONNECTED, isOwnerRequest } from "@/lib/server/owner";
 import {
   createEmailDraft,
   getEmailById,
@@ -11,6 +12,9 @@ import {
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  if (!isOwnerRequest(req)) {
+    return NextResponse.json(NOT_CONNECTED, { status: 403 });
+  }
   if (!gmailConfigured()) {
     return NextResponse.json({ error: "gmail_not_connected" }, { status: 503 });
   }

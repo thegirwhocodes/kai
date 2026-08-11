@@ -1,6 +1,13 @@
 "use client";
 
-export type Panel = "voice" | "plan" | "tasks" | "music" | "settings" | null;
+export type Panel =
+  | "voice"
+  | "plan"
+  | "tasks"
+  | "music"
+  | "stats"
+  | "settings"
+  | null;
 
 export function Dock({
   active,
@@ -11,22 +18,28 @@ export function Dock({
   onSelect: (p: Panel) => void;
   onFullscreen: () => void;
 }) {
-  const items: { id: Exclude<Panel, null>; icon: string; label: string }[] = [
-    { id: "voice", icon: "🎙", label: "Talk to Kai" },
-    { id: "plan", icon: "◇", label: "Plan next" },
-    { id: "tasks", icon: "✓", label: "Tasks" },
-    { id: "music", icon: "♫", label: "Focus music" },
-    { id: "settings", icon: "✦", label: "Customize" },
+  const items: {
+    id: Exclude<Panel, null>;
+    icon: string;
+    label: string;
+    key: string;
+  }[] = [
+    { id: "voice", icon: "🎙", label: "Talk to Kai", key: "V" },
+    { id: "plan", icon: "◇", label: "Plan next", key: "P" },
+    { id: "tasks", icon: "✓", label: "Tasks", key: "T" },
+    { id: "music", icon: "♫", label: "Focus sounds", key: "M" },
+    { id: "stats", icon: "▤", label: "Your focus", key: "R" },
+    { id: "settings", icon: "✦", label: "Customize", key: "C" },
   ];
   return (
-    <div className="fixed bottom-6 right-6 z-20 flex gap-2">
+    <div className="fixed bottom-4 right-4 z-20 flex max-w-[calc(100vw-2rem)] flex-wrap justify-end gap-2 sm:bottom-6 sm:right-6">
       {items.map((it) => (
         <button
           key={it.id}
           className="dock-btn"
           data-active={active === it.id}
           onClick={() => onSelect(active === it.id ? null : it.id)}
-          title={it.label}
+          title={`${it.label} (${it.key})`}
           aria-label={it.label}
         >
           {it.icon}
@@ -35,7 +48,7 @@ export function Dock({
       <button
         className="dock-btn"
         onClick={onFullscreen}
-        title="Fullscreen"
+        title="Fullscreen (F)"
         aria-label="Fullscreen"
       >
         ⛶

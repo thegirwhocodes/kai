@@ -7,6 +7,7 @@
 import { useAgentStore } from "@/lib/store";
 import { KIND_LABEL } from "@/lib/format";
 import type { KaiRecommendation, TaskPriority } from "@/lib/types";
+import { kaiFetch } from "@/lib/ownerClient";
 
 export interface ToolCall {
   id: string;
@@ -148,7 +149,7 @@ async function executeRecommendationTool(call: ToolCall): Promise<string> {
   let recommendation = store.latestRecommendation;
 
   if (call.name === "suggest_next_session" || !recommendation) {
-    const res = await fetch("/api/recommendation", {
+    const res = await kaiFetch("/api/recommendation", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -235,7 +236,7 @@ async function executeCalendarTool(call: ToolCall): Promise<string> {
         };
 
   try {
-    const res = await fetch("/api/calendar", {
+    const res = await kaiFetch("/api/calendar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -301,7 +302,7 @@ async function executeEmailTool(call: ToolCall): Promise<string> {
           : "update_draft";
   const payload = { action, ...input };
   try {
-    const res = await fetch("/api/email", {
+    const res = await kaiFetch("/api/email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -380,7 +381,7 @@ async function executeSpotifyTool(call: ToolCall): Promise<string> {
           allowCatalog: input.allowCatalog === true,
         };
   try {
-    const res = await fetch("/api/spotify", {
+    const res = await kaiFetch("/api/spotify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),

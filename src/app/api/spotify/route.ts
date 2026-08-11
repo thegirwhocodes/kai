@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { NOT_CONNECTED, isOwnerRequest } from "@/lib/server/owner";
 import {
   getDevices,
   pausePlayback,
@@ -19,6 +20,9 @@ export const runtime = "nodejs";
 // Body: { action: "play" | "pause", query?, allowCatalog? }
 
 export async function POST(req: Request) {
+  if (!isOwnerRequest(req)) {
+    return NextResponse.json(NOT_CONNECTED, { status: 403 });
+  }
   if (!spotifyConfigured()) {
     return NextResponse.json({ error: "spotify_not_connected" }, { status: 503 });
   }

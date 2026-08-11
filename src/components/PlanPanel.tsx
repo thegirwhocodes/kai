@@ -5,6 +5,7 @@ import { buildStateSnapshot } from "@/lib/agent/executeTool";
 import { unlockAudio } from "@/lib/alerts";
 import { useAgentStore } from "@/lib/store";
 import type { KaiRecommendation } from "@/lib/types";
+import { kaiFetch } from "@/lib/ownerClient";
 
 export function PlanPanel() {
   const latest = useAgentStore((s) => s.latestRecommendation);
@@ -19,7 +20,7 @@ export function PlanPanel() {
     setError(null);
     setScheduled(null);
     try {
-      const res = await fetch("/api/recommendation", {
+      const res = await kaiFetch("/api/recommendation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -61,7 +62,7 @@ export function PlanPanel() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/calendar", {
+      const res = await kaiFetch("/api/calendar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

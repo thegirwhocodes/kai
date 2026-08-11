@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { NOT_CONNECTED, isOwnerRequest } from "@/lib/server/owner";
 import {
   calendarConfigured,
   createEvent,
@@ -19,6 +20,9 @@ export const runtime = "nodejs";
 // "create_calendar" | "reschedule_spaced", ... }
 
 export async function POST(req: Request) {
+  if (!isOwnerRequest(req)) {
+    return NextResponse.json(NOT_CONNECTED, { status: 403 });
+  }
   if (!calendarConfigured()) {
     return NextResponse.json(
       { error: "calendar_not_connected" },

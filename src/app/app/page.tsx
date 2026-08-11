@@ -9,9 +9,11 @@ import { LockInBar, LockInChooser, LockInNext } from "@/components/LockIn";
 import { PlanPanel } from "@/components/PlanPanel";
 import { MusicPanel } from "@/components/MusicPanel";
 import { SettingsPanel } from "@/components/SettingsPanel";
+import { StatsPanel } from "@/components/StatsPanel";
 import { TasksPanel } from "@/components/TasksPanel";
 import { VoicePanel } from "@/components/VoicePanel";
 import { WakeListener } from "@/components/WakeListener";
+import { Welcome } from "@/components/Welcome";
 import { unlockAudio } from "@/lib/alerts";
 import { buildStateSnapshot } from "@/lib/agent/executeTool";
 import { toCss } from "@/lib/backgrounds";
@@ -20,8 +22,10 @@ import { useAgentStore } from "@/lib/store";
 import type { KaiRecommendation } from "@/lib/types";
 import { useAutopilot } from "@/lib/useAutopilot";
 import { useExternalCommands } from "@/lib/useExternalCommands";
+import { useKeyboard } from "@/lib/useKeyboard";
 import { useTicker } from "@/lib/useTicker";
 import { VoiceAgentProvider } from "@/lib/voice/useVoiceAgent";
+import { kaiFetch } from "@/lib/ownerClient";
 
 export default function Home() {
   return (
@@ -71,7 +75,7 @@ function KaiApp() {
     setPlanning(true);
     setPlanError(null);
     try {
-      const res = await fetch("/api/recommendation", {
+      const res = await kaiFetch("/api/recommendation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ state: buildStateSnapshot(), intent: "next_session" }),
@@ -91,11 +95,9 @@ function KaiApp() {
     }
   }, [setLatestRecommendation]);
 
-  useEffect(() => {
-    if (!mounted || latestRecommendation) return;
-    const id = window.setTimeout(() => void refreshPlan(), 350);
-    return () => window.clearTimeout(id);
-  }, [mounted, latestRecommendation, refreshPlan]);
+  // Planning is deliberately opt-in: it reaches out to connected accounts, so
+  // it only ever runs when the user asks for it from the Plan panel. A fresh
+  // visitor gets a timer that works instantly and no surprise network calls.
 
   const isRunning = active?.status === "running";
   const isPaused = active?.status === "paused";
@@ -125,11 +127,13 @@ function KaiApp() {
     unlockAudio();
     advanceLockIn();
   };
-  const fullscreen = () => {
+  const fullscreen = useCallback(() => {
     if (typeof document === "undefined") return;
     if (!document.fullscreenElement) void document.documentElement.requestFullscreen?.();
     else void document.exitFullscreen?.();
-  };
+  }, []);
+
+  useKeyboard({ panel, setPanel, onFullscreen: fullscreen, selectedTask });
 
   if (!mounted) {
     return <main className="min-h-screen" style={{ background: "#15101f" }} />;
@@ -154,9 +158,11 @@ function KaiApp() {
       </div>
 
       {/* Quote */}
-      <div className="fixed right-6 top-6 z-20 hidden sm:block">
-        <Quote />
-      </div>
+      {settings.showQuote && (
+        <div className="fixed right-6 top-6 z-20 hidden sm:block">
+          <Quote />
+        </div>
+      )}
       <WakeListener onOpenVoice={() => setPanel("voice")} />
 
       {/* Center */}
@@ -167,8 +173,12 @@ function KaiApp() {
       >
         {idle ? (
           <>
-            <Clock />
-            <p className="mt-5 text-xl font-light sm:text-2xl">{greeting()}</p>
+            {settings.showClock && <Clock />}
+            {settings.showGreeting && (
+              <p className="mt-5 text-xl font-light sm:text-2xl">
+                {greeting(settings.userName)}
+              </p>
+            )}
             {lockIn ? (
               // Mid lock-in, between blocks (autostart off): keep the plan going.
               <>
@@ -188,22 +198,29 @@ function KaiApp() {
                       Start next
                     </button>
                   )}
-                  <button onClick={beginFocus} className="btn-ghost">
-                    Quick focus
+                  <button
+                    onClick={beginFocus}
+                    className={latestRecommendation ? "btn-ghost" : "btn-primary"}
+                  >
+                    Start {Math.round(settings.baselineFocusSec / 60)} min focus
                   </button>
                   <button onClick={beginBreak} className="btn-ghost">
                     Take a break
                   </button>
                 </div>
                 <LockInChooser onStart={beginLockIn} />
-                <HeroPlan
-                  recommendation={latestRecommendation}
-                  loading={planning}
-                  error={planError}
-                  onRefresh={refreshPlan}
-                  onStart={beginRecommended}
-                  onOpenPlan={() => setPanel("plan")}
-                />
+                {/* The planner card appears once it has something to say —
+                    asking Kai to plan is a deliberate act, not a page load. */}
+                {(latestRecommendation || planning || planError) && (
+                  <HeroPlan
+                    recommendation={latestRecommendation}
+                    loading={planning}
+                    error={planError}
+                    onRefresh={refreshPlan}
+                    onStart={beginRecommended}
+                    onOpenPlan={() => setPanel("plan")}
+                  />
+                )}
               </>
             )}
           </>
@@ -297,12 +314,14 @@ function KaiApp() {
             {panel === "tasks" && (
               <TasksPanel selectedTask={selectedTask} setSelectedTask={setSelectedTask} />
             )}
+            {panel === "stats" && <StatsPanel />}
             {panel === "settings" && <SettingsPanel />}
           </div>
         </>
       )}
 
       <Dock active={panel} onSelect={setPanel} onFullscreen={fullscreen} />
+      <Welcome />
     </main>
   );
 }

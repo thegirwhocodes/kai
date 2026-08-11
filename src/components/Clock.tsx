@@ -34,7 +34,14 @@ const DAYS = [
   "Saturday",
 ];
 
-export function greeting(name = "Naomi"): string {
-  const d = new Date();
-  return `Hey ${name}, ${DAYS[d.getDay()]}'s looking good on you`;
+/**
+ * The room's welcome line. Without a name it stays warm but anonymous — we
+ * never guess who the user is.
+ */
+export function greeting(name?: string): string {
+  const day = DAYS[new Date().getDay()];
+  const who = name?.trim();
+  return who
+    ? `Hey ${who}, ${day}'s looking good on you`
+    : `${day}'s looking good on you`;
 }

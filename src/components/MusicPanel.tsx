@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+// Focus sounds. The generated ambient mixer comes first because it works for
+// everyone with no account, no device, and no network. Spotify sits below it
+// and is honest about needing a connected account.
+
+import { useEffect, useState } from "react";
 import { MUSIC_MODES, type MusicMode } from "@/lib/music/modes";
-import {
-  AMBIENT_PRESETS,
-  AmbientEngine,
-  type AmbientKind,
-} from "@/lib/music/ambient";
+import { AMBIENT_PRESETS, ambientMixer } from "@/lib/music/ambient";
+import { useAgentStore } from "@/lib/store";
+import { kaiFetch } from "@/lib/ownerClient";
 
 interface PlayResult {
   played?: {
@@ -22,41 +24,40 @@ interface PlayResult {
   error?: string;
 }
 
+const DEFAULT_LEVEL = 0.4;
+
 export function MusicPanel() {
+  const levels = useAgentStore((s) => s.settings.ambientLevels);
+  const update = useAgentStore((s) => s.updateSettings);
+
   const [query, setQuery] = useState(MUSIC_MODES[1].query);
   const [allowCatalog, setAllowCatalog] = useState(true);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  // Ambient focus sounds — generated client-side, no account or device needed.
-  const engineRef = useRef<AmbientEngine | null>(null);
-  const [ambient, setAmbient] = useState<AmbientKind | null>(null);
-  const [ambientVol, setAmbientVol] = useState(0.4);
-
+  // Opening the panel is itself a user gesture, so the audio context can
+  // resume here and pick the saved mix back up.
   useEffect(() => {
-    return () => {
-      engineRef.current?.dispose();
-      engineRef.current = null;
-    };
+    ambientMixer.apply(levels);
+    // Only on mount: later changes go through setLevel, which drives the mixer
+    // directly and would otherwise re-apply every slider tick.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const toggleAmbient = (kind: AmbientKind) => {
-    if (!engineRef.current) engineRef.current = new AmbientEngine();
-    const engine = engineRef.current;
-    if (engine.current === kind) {
-      engine.stop();
-      setAmbient(null);
-    } else {
-      engine.setVolume(ambientVol);
-      engine.start(kind);
-      setAmbient(kind);
-    }
+  const setLevel = (id: string, level: number) => {
+    const next = { ...levels };
+    if (level <= 0) delete next[id];
+    else next[id] = level;
+    update({ ambientLevels: next });
+    ambientMixer.set(id as never, level);
   };
 
-  const changeAmbientVol = (v: number) => {
-    setAmbientVol(v);
-    engineRef.current?.setVolume(v);
+  const stopAll = () => {
+    ambientMixer.stopAll();
+    update({ ambientLevels: {} });
   };
+
+  const activeCount = Object.keys(levels).length;
 
   const play = async (mode?: MusicMode) => {
     const clean = (mode?.query ?? query).trim();
@@ -64,7 +65,7 @@ export function MusicPanel() {
     setLoading(true);
     setMessage(null);
     try {
-      const res = await fetch("/api/spotify", {
+      const res = await kaiFetch("/api/spotify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -76,7 +77,7 @@ export function MusicPanel() {
       const data = (await res.json()) as PlayResult;
       if (res.status === 503 || data.error === "spotify_not_connected") {
         setMessage(
-          "Spotify isn't connected. Try the ambient focus sounds below — they work with no account.",
+          "Spotify isn't connected. The focus sounds above work with no account.",
         );
         return;
       }
@@ -86,7 +87,7 @@ export function MusicPanel() {
         setMessage("I could not find that on Spotify.");
       } else if (data.noActiveDevice) {
         setMessage(
-          `Open Spotify on a device first${data.devices?.length ? `: ${data.devices.join(", ")}` : ""}. Or use the ambient sounds below.`,
+          `Open Spotify on a device first${data.devices?.length ? `: ${data.devices.join(", ")}` : ""}. Or use the focus sounds above.`,
         );
       } else if (data.played) {
         setMessage(
@@ -106,7 +107,7 @@ export function MusicPanel() {
     setLoading(true);
     setMessage(null);
     try {
-      const res = await fetch("/api/spotify", {
+      const res = await kaiFetch("/api/spotify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "pause" }),
@@ -122,131 +123,155 @@ export function MusicPanel() {
   };
 
   return (
-    <section className="glass w-full max-w-md rounded-lg p-4">
+    <section className="glass max-h-[76vh] w-full max-w-md overflow-y-auto rounded-lg p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="text-sm font-medium" style={{ color: "var(--muted)" }}>
-            Focus music
+            Focus sounds
           </h2>
           <p className="mt-1 text-xs leading-5" style={{ color: "var(--muted)" }}>
-            Spotify library and playlists first. Wider search only when a mode needs it.
+            Layer as many as you like. Generated in your browser — no account,
+            works offline.
           </p>
         </div>
-      </div>
-      <div className="mt-3 grid gap-2">
-        {MUSIC_MODES.map((mode) => (
+        {activeCount > 0 && (
           <button
-            key={mode.id}
             type="button"
-            onClick={() => {
-              setQuery(mode.query);
-              setAllowCatalog(mode.allowCatalog);
-              void play(mode);
-            }}
-            disabled={loading}
-            className="rounded-lg border border-white/12 bg-white/[0.045] px-3 py-2 text-left transition hover:bg-white/10 disabled:opacity-50"
+            onClick={stopAll}
+            className="shrink-0 rounded-lg border border-white/15 px-2.5 py-1.5 text-xs transition hover:bg-white/10"
           >
-            <span className="block text-sm font-medium">{mode.name}</span>
-            <span className="mt-0.5 block text-xs leading-5" style={{ color: "var(--muted)" }}>
-              {mode.description}
-            </span>
+            Stop all
           </button>
-        ))}
+        )}
       </div>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          void play();
-        }}
-        className="mt-3 flex gap-2"
-      >
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Christian lofi instrumental"
-          className="flex-1 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none transition focus:border-white/40"
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded-lg border border-white/15 px-3 py-2 text-sm transition hover:bg-white/10 disabled:opacity-50"
-        >
-          Play
-        </button>
-      </form>
-      <label className="mt-3 flex items-center gap-2 text-xs" style={{ color: "var(--muted)" }}>
-        <input
-          type="checkbox"
-          checked={allowCatalog}
-          onChange={(e) => setAllowCatalog(e.target.checked)}
-        />
-        Search wider Spotify catalog when needed
-      </label>
-      <div className="mt-3 flex gap-2">
-        <button
-          type="button"
-          onClick={() => void play()}
-          disabled={loading}
-          className="btn-primary"
-        >
-          Lock in
-        </button>
-        <button
-          type="button"
-          onClick={() => void pause()}
-          disabled={loading}
-          className="btn-ghost"
-        >
-          Pause
-        </button>
+
+      <div className="mt-3 flex flex-col gap-2">
+        {AMBIENT_PRESETS.map((preset) => {
+          const level = levels[preset.id] ?? 0;
+          const on = level > 0;
+          return (
+            <div
+              key={preset.id}
+              className="rounded-lg border px-3 py-2 transition"
+              style={{
+                borderColor: on ? "rgba(251,122,142,0.5)" : "rgba(255,255,255,0.12)",
+                background: on ? "rgba(251,122,142,0.1)" : "rgba(255,255,255,0.045)",
+              }}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => setLevel(preset.id, on ? 0 : DEFAULT_LEVEL)}
+                  aria-pressed={on}
+                  title={preset.description}
+                  className="flex-1 text-left"
+                >
+                  <span className="block text-sm font-medium">
+                    {on ? "■" : "▶"} {preset.name}
+                  </span>
+                  <span
+                    className="mt-0.5 block text-[11px] leading-4"
+                    style={{ color: "var(--muted)" }}
+                  >
+                    {preset.description}
+                  </span>
+                </button>
+              </div>
+              {on && (
+                <input
+                  type="range"
+                  min={0.05}
+                  max={1}
+                  step={0.01}
+                  value={level}
+                  onChange={(e) => setLevel(preset.id, Number(e.target.value))}
+                  className="mt-2 w-full"
+                  aria-label={`${preset.name} volume`}
+                />
+              )}
+            </div>
+          );
+        })}
       </div>
-      {message && (
-        <p className="mt-3 text-sm leading-6" style={{ color: "var(--muted)" }}>
-          {message}
-        </p>
-      )}
 
       <div className="mt-5 border-t border-white/10 pt-4">
         <h3 className="text-sm font-medium" style={{ color: "var(--muted)" }}>
-          Ambient sounds
+          Spotify
         </h3>
         <p className="mt-1 text-xs leading-5" style={{ color: "var(--muted)" }}>
-          No account needed — quiet textures to study to, like a corner of a calm cafe.
+          Plays through a connected Spotify account, your own library and
+          playlists first. Needs Premium and an open device.
         </p>
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          {AMBIENT_PRESETS.map((preset) => {
-            const active = ambient === preset.id;
-            return (
-              <button
-                key={preset.id}
-                type="button"
-                onClick={() => toggleAmbient(preset.id)}
-                aria-pressed={active}
-                title={preset.description}
-                className={`rounded-lg border px-2 py-2 text-center text-xs font-medium transition ${
-                  active
-                    ? "border-[#fb7a8e]/60 bg-[#fb7a8e]/15 text-white"
-                    : "border-white/12 bg-white/[0.045] hover:bg-white/10"
-                }`}
+        <div className="mt-3 grid gap-2">
+          {MUSIC_MODES.map((mode) => (
+            <button
+              key={mode.id}
+              type="button"
+              onClick={() => {
+                setQuery(mode.query);
+                setAllowCatalog(mode.allowCatalog);
+                void play(mode);
+              }}
+              disabled={loading}
+              className="rounded-lg border border-white/12 bg-white/[0.045] px-3 py-2 text-left transition hover:bg-white/10 disabled:opacity-50"
+            >
+              <span className="block text-sm font-medium">{mode.name}</span>
+              <span
+                className="mt-0.5 block text-xs leading-5"
+                style={{ color: "var(--muted)" }}
               >
-                {active ? `■ ${preset.name}` : preset.name}
-              </button>
-            );
-          })}
+                {mode.description}
+              </span>
+            </button>
+          ))}
         </div>
-        <label className="mt-3 flex items-center gap-3 text-xs" style={{ color: "var(--muted)" }}>
-          <span className="shrink-0">Volume</span>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void play();
+          }}
+          className="mt-3 flex gap-2"
+        >
           <input
-            type="range"
-            min={0}
-            max={1}
-            step={0.01}
-            value={ambientVol}
-            onChange={(e) => changeAmbientVol(Number(e.target.value))}
-            className="w-full"
-            aria-label="Ambient volume"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Christian lofi instrumental"
+            className="flex-1 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-sm outline-none transition focus:border-white/40"
           />
+          <button
+            type="submit"
+            disabled={loading}
+            className="rounded-lg border border-white/15 px-3 py-2 text-sm transition hover:bg-white/10 disabled:opacity-50"
+          >
+            Play
+          </button>
+        </form>
+        <label
+          className="mt-3 flex items-center gap-2 text-xs"
+          style={{ color: "var(--muted)" }}
+        >
+          <input
+            type="checkbox"
+            checked={allowCatalog}
+            onChange={(e) => setAllowCatalog(e.target.checked)}
+          />
+          Search wider Spotify catalog when needed
         </label>
+        <div className="mt-3">
+          <button
+            type="button"
+            onClick={() => void pause()}
+            disabled={loading}
+            className="btn-ghost"
+          >
+            Pause Spotify
+          </button>
+        </div>
+        {message && (
+          <p className="mt-3 text-sm leading-6" style={{ color: "var(--muted)" }}>
+            {message}
+          </p>
+        )}
       </div>
     </section>
   );

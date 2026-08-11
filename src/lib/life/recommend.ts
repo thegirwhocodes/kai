@@ -30,12 +30,21 @@ export interface RecommendationState {
   tasks?: Partial<Task>[];
   settings?: RecommendationSettings;
   lastRationale?: string | null;
+  /** The user's own free-text priorities, used to weight task scoring. */
+  priorities?: string;
+  userName?: string;
 }
 
 export interface BuildRecommendationOptions {
   state?: RecommendationState;
   horizonHours?: number;
   intent?: "next_session" | "plan_day";
+  /**
+   * Whether this caller may read the owner's connected Google accounts. Off for
+   * ordinary visitors, who get task-only planning — still useful, and it never
+   * reaches into someone else's calendar or inbox.
+   */
+  allowIntegrations?: boolean;
 }
 
 interface Candidate {
@@ -65,8 +74,11 @@ export async function buildKaiRecommendation(
     now.getTime() + Math.max(2, options.horizonHours ?? 10) * 60 * 60_000,
   );
 
-  const calendar = await buildCalendarSummary(now, horizon);
-  const emailSignals = await buildEmailSignals();
+  const allowIntegrations = options.allowIntegrations ?? false;
+  const calendar = allowIntegrations
+    ? await buildCalendarSummary(now, horizon)
+    : { connected: false, busyCount: 0, freeSlots: [] };
+  const emailSignals = allowIntegrations ? await buildEmailSignals() : [];
   const minutesUntilNextCommitment = calendar.nextEvent
     ? Math.max(
         0,
@@ -75,8 +87,9 @@ export async function buildKaiRecommendation(
     : undefined;
 
   const tasks = normalizeTasks(state.tasks ?? []);
+  const priorityKeywords = parsePriorities(state.priorities);
   const candidates = [
-    ...tasks.map((task) => taskCandidate(task, now)),
+    ...tasks.map((task) => taskCandidate(task, now, priorityKeywords)),
     ...emailCandidates(emailSignals),
   ].sort((a, b) => b.score - a.score);
 
@@ -227,7 +240,11 @@ function normalizeTasks(tasks: Partial<Task>[]): Task[] {
     }));
 }
 
-function taskCandidate(task: Task, now: Date): Candidate {
+function taskCandidate(
+  task: Task,
+  now: Date,
+  priorityKeywords: string[],
+): Candidate {
   const priority = normalizePriority(task.priority);
   const text = `${task.title} ${task.sphere ?? ""} ${task.notes ?? ""}`.toLowerCase();
   let score = 25 + priorityWeight[priority];
@@ -254,18 +271,13 @@ function taskCandidate(task: Task, now: Date): Candidate {
     }
   }
 
-  if (matches(text, ["sabi", "education for equality", "lagos", "nigeria", "grant"])) {
+  // Boost work that touches whatever the user told us matters right now.
+  // There is no built-in list of "important" topics — it's their answer or
+  // nothing, so this reads the same for every user.
+  const hit = priorityKeywords.find((keyword) => text.includes(keyword));
+  if (hit) {
     score += 30;
-    reasonParts.push("it serves Sabi/Education for Equality");
-  } else if (matches(text, ["class", "school", "wesleyan", "paper", "assignment"])) {
-    score += 25;
-    reasonParts.push("school work should not sneak up on you");
-  } else if (matches(text, ["kai", "cortex", "agent", "alexa"])) {
-    score += 22;
-    reasonParts.push("it moves the personal-agent build forward");
-  } else if (matches(text, ["mom", "sonia", "family"])) {
-    score += 20;
-    reasonParts.push("relationship context matters");
+    reasonParts.push(`it's one of your priorities right now (${hit})`);
   }
 
   return {
@@ -389,8 +401,19 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-function matches(text: string, needles: string[]): boolean {
-  return needles.some((needle) => text.includes(needle));
+/**
+ * Turn the user's free-text priorities ("thesis, job applications") into
+ * lowercase keywords. Very short fragments are dropped so a stray "a" can't
+ * match every task.
+ */
+export function parsePriorities(priorities?: string): string[] {
+  if (!priorities) return [];
+  return priorities
+    .toLowerCase()
+    .split(/[,;\n]+/)
+    .map((part) => part.trim())
+    .filter((part) => part.length >= 3)
+    .slice(0, 12);
 }
 
 function slug(text: string): string {
