@@ -7,8 +7,9 @@
 
 import { buildStateSnapshot, executeToolCall, type ToolCall } from "./executeTool";
 
-// Loosely-typed Anthropic message shapes — enough for the wire format without
-// pulling the SDK into the browser bundle.
+// Provider-neutral block-shaped messages (text / tool_use / tool_result). The
+// API route translates these to whichever model provider is configured, so the
+// browser never needs a vendor SDK.
 type ContentBlock = Record<string, unknown> & { type: string };
 export interface Message {
   role: "user" | "assistant";

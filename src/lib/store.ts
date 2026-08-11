@@ -26,9 +26,29 @@ const uid = () =>
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2);
 
+/** Roughly two years of heavy use; keeps localStorage bounded. */
+const MAX_HISTORY_BLOCKS = 4000;
+
+/** Same local calendar day? Used to roll the session over at midnight. */
+export function isSameDay(a: number, b: number): boolean {
+  const x = new Date(a);
+  const y = new Date(b);
+  return (
+    x.getFullYear() === y.getFullYear() &&
+    x.getMonth() === y.getMonth() &&
+    x.getDate() === y.getDate()
+  );
+}
+
 interface StoreState {
   settings: AgentSettings;
   session: Session | null;
+  /**
+   * Blocks from previous days, oldest first. The live `session` only ever holds
+   * today, so stats read `history` + `session.blocks` and every "today" count
+   * stays honest across midnight. Capped so localStorage can't grow forever.
+   */
+  history: Block[];
   tasks: Task[];
   /** The block currently in focus in the UI (active or just-finished). */
   activeBlock: Block | null;
@@ -124,6 +144,7 @@ export const useAgentStore = create<StoreState>()(
     (set, get) => ({
       settings: DEFAULT_SETTINGS,
       session: null,
+      history: [],
       tasks: [],
       activeBlock: null,
       remainingSec: 0,
@@ -134,14 +155,21 @@ export const useAgentStore = create<StoreState>()(
 
       ensureSession: () => {
         const existing = get().session;
-        if (existing) return existing;
+        if (existing && isSameDay(existing.startedAt, Date.now())) return existing;
         const session: Session = {
           id: uid(),
           startedAt: Date.now(),
           blocks: [],
           currentBlockIndex: -1,
         };
-        set({ session });
+        // A session left over from an earlier day is retired into history so
+        // today starts clean (and yesterday still counts in stats).
+        set({
+          session,
+          history: existing
+            ? [...get().history, ...existing.blocks].slice(-MAX_HISTORY_BLOCKS)
+            : get().history,
+        });
         return session;
       },
 
@@ -409,11 +437,12 @@ export const useAgentStore = create<StoreState>()(
       // users' tasks/sessions live in localStorage. Renaming it would orphan
       // their saved data. (The product is "Kai"; the storage key is legacy.)
       name: "pomodoro-agent",
-      version: 1,
+      version: 2,
       partialize: (s) => ({
         settings: s.settings,
         tasks: s.tasks,
         session: s.session,
+        history: s.history,
       }),
       // v0 -> v1: classic Pomodoro became the product default. The adaptive
       // toggle had no UI before v1, so a persisted `adaptive: true` was never a
@@ -425,6 +454,7 @@ export const useAgentStore = create<StoreState>()(
           settings: AgentSettings;
           tasks: Task[];
           session: Session | null;
+          history: Block[];
         },
       // Default merge is shallow, which would let an OLD persisted `settings`
       // object (missing newer keys like autoStart) clobber the defaults. Deep-
@@ -453,6 +483,24 @@ export function migratePersisted(
   const p = { ...((persisted ?? {}) as Partial<StoreState>) };
   if (version < 1 && p.settings) {
     p.settings = { ...p.settings, adaptive: false };
+  }
+  // v1 -> v2: `session` used to run forever, so an existing user's blocks span
+  // many days and every "today" count was inflated. Split the old pile: keep
+  // today in the session, retire the rest to history.
+  if (version < 2) {
+    const now = Date.now();
+    const blocks = p.session?.blocks ?? [];
+    const past = blocks.filter((b) => !isSameDay(b.startedAt ?? now, now));
+    const today = blocks.filter((b) => isSameDay(b.startedAt ?? now, now));
+    p.history = [...(p.history ?? []), ...past].slice(-MAX_HISTORY_BLOCKS);
+    if (p.session) {
+      p.session = {
+        ...p.session,
+        startedAt: today[0]?.startedAt ?? now,
+        blocks: today,
+        currentBlockIndex: today.length - 1,
+      };
+    }
   }
   return p;
 }

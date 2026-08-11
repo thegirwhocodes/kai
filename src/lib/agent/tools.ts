@@ -3,9 +3,22 @@
 // The client executes the tool call against the zustand store and feeds the
 // result back to the model.
 
-import type Anthropic from "@anthropic-ai/sdk";
+/**
+ * Tool definitions are written in the JSON-Schema shape below and converted to
+ * the provider's wire format at the edge (see `toChatTools`). Keeping our own
+ * type means no vendor SDK is needed just to describe a tool.
+ */
+export interface AgentTool {
+  name: string;
+  description: string;
+  input_schema: {
+    type: "object";
+    properties: Record<string, unknown>;
+    required?: string[];
+  };
+}
 
-export const AGENT_TOOLS: Anthropic.Tool[] = [
+export const AGENT_TOOLS: AgentTool[] = [
   {
     name: "start_focus",
     description:
@@ -373,3 +386,25 @@ export const AGENT_TOOLS: Anthropic.Tool[] = [
 ];
 
 export const AGENT_TOOL_NAMES = new Set(AGENT_TOOLS.map((t) => t.name));
+
+/** OpenAI-compatible function-tool shape (what Groq's chat API expects). */
+export interface ChatTool {
+  type: "function";
+  function: {
+    name: string;
+    description: string;
+    parameters: AgentTool["input_schema"];
+  };
+}
+
+/** Convert our tool definitions to the OpenAI/Groq `tools` wire format. */
+export function toChatTools(tools: AgentTool[] = AGENT_TOOLS): ChatTool[] {
+  return tools.map((t) => ({
+    type: "function",
+    function: {
+      name: t.name,
+      description: t.description,
+      parameters: t.input_schema,
+    },
+  }));
+}

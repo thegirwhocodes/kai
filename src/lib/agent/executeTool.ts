@@ -442,6 +442,8 @@ export function buildStateSnapshot() {
   return {
     nowISO: new Date().toISOString(),
     timezone,
+    userName: s.settings.userName,
+    priorities: s.settings.priorities,
     activeKind: s.activeBlock?.kind,
     activeStatus: s.activeBlock?.status,
     remainingSec: s.remainingSec,

@@ -207,6 +207,12 @@ export interface AdaptiveDecision {
 
 /** Tunable knobs, surfaced in settings and to the agent. */
 export interface AgentSettings {
+  /** What the user wants to be called. Empty until they say. */
+  userName: string;
+  /** Free text: what matters to them right now, used to weight planning. */
+  priorities: string;
+  /** Set once the first-run welcome has been completed or dismissed. */
+  onboarded: boolean;
   baselineFocusSec: number; // default focus length (e.g. 25 min)
   shortBreakSec: number; // default short break (e.g. 5 min)
   longBreakSec: number; // default long break (e.g. 15 min)
@@ -220,9 +226,18 @@ export interface AgentSettings {
   voiceAlerts: boolean; // Kai speaks each transition aloud
   wakeListening: boolean; // keep Hey Kai listening when the app is open
   background: string; // CSS gradient preset, or an image URL
+  /** Which ambient textures are playing, and at what level (0–1). */
+  ambientLevels: Record<string, number>;
+  // Widgets the user can hide to strip the room back to just the timer.
+  showClock: boolean;
+  showQuote: boolean;
+  showGreeting: boolean;
 }
 
 export const DEFAULT_SETTINGS: AgentSettings = {
+  userName: "",
+  priorities: "",
+  onboarded: false,
   baselineFocusSec: 25 * 60,
   shortBreakSec: 5 * 60,
   longBreakSec: 15 * 60,
@@ -238,4 +253,8 @@ export const DEFAULT_SETTINGS: AgentSettings = {
   voiceAlerts: true,
   wakeListening: true,
   background: DEFAULT_BACKGROUND,
+  ambientLevels: {},
+  showClock: true,
+  showQuote: true,
+  showGreeting: true,
 };
