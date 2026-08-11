@@ -1,14 +1,24 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { getOwnerToken } from "@/lib/ownerClient";
 import { useAgentStore } from "@/lib/store";
 import type { KaiCommand } from "@/lib/types";
 
+/**
+ * Bridges Alexa (and any other external caller) to this browser's timer.
+ *
+ * The command queue is a single shared server-side list, so it only makes
+ * sense for the deployment's owner: without this gate, an "Alexa, start a
+ * focus session" would reach into every open tab on the internet, and every
+ * visitor would poll the queue forever for a feature they can't use.
+ */
 export function useExternalCommands() {
   const lastSeenRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
+    if (!getOwnerToken()) return;
     if (lastSeenRef.current === 0) lastSeenRef.current = Date.now();
 
     const poll = async () => {

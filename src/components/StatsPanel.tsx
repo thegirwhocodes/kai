@@ -56,17 +56,24 @@ export function StatsPanel() {
               {stats.week.map((day, i) => {
                 const isToday = i === stats.week.length - 1;
                 return (
-                  <div key={day.dayStart} className="flex flex-1 flex-col items-center gap-1">
-                    <span
-                      className="w-full rounded-t transition-all"
-                      style={{
-                        height: `${Math.max(2, (day.focusMin / peakMax) * 72)}px`,
-                        background: isToday
-                          ? "var(--focus)"
-                          : "rgba(255,255,255,0.22)",
-                      }}
-                      title={`${day.label}: ${formatMinutes(day.focusMin)}`}
-                    />
+                  <div
+                    key={day.dayStart}
+                    className="flex h-full flex-1 flex-col items-center justify-end gap-1"
+                    title={`${day.label}: ${formatMinutes(day.focusMin)}`}
+                  >
+                    {/* A track behind every bar so the chart still reads as a
+                        chart on a day with nothing in it. */}
+                    <span className="flex w-full flex-1 items-end rounded bg-white/[0.06]">
+                      <span
+                        className="w-full rounded transition-all"
+                        style={{
+                          height: `${Math.max(day.focusMin > 0 ? 4 : 0, (day.focusMin / peakMax) * 100)}%`,
+                          background: isToday
+                            ? "var(--focus)"
+                            : "rgba(255,255,255,0.28)",
+                        }}
+                      />
+                    </span>
                     <span
                       className="text-[10px]"
                       style={{

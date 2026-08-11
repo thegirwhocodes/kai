@@ -6,6 +6,11 @@
 
 let current: HTMLAudioElement | null = null;
 
+// If the hosted voice is unavailable — no key, an unpaid account, a network
+// blip — it will be unavailable for the rest of the visit too. Remember that
+// after the first failure so a transition never waits on a doomed request.
+let hostedVoiceDown = false;
+
 export interface SpeakOpts {
   onStart?: () => void;
   onEnd?: () => void;
@@ -26,6 +31,10 @@ function speakBrowser(text: string, opts?: SpeakOpts) {
 
 export async function speakKai(text: string, opts?: SpeakOpts): Promise<void> {
   if (!text) return;
+  if (hostedVoiceDown) {
+    speakBrowser(text, opts);
+    return;
+  }
   try {
     const res = await fetch("/api/tts", {
       method: "POST",
@@ -45,6 +54,7 @@ export async function speakKai(text: string, opts?: SpeakOpts): Promise<void> {
     };
     await audio.play();
   } catch {
+    hostedVoiceDown = true;
     speakBrowser(text, opts);
   }
 }

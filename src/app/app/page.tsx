@@ -302,7 +302,7 @@ function KaiApp() {
         <>
           <div className="fixed inset-0 z-[15] bg-[#15101f]/60 backdrop-blur-sm sm:hidden" />
           <div
-            className={`fixed bottom-24 left-4 z-40 max-w-[calc(100vw-2rem)] sm:bottom-6 sm:left-6 ${
+            className={`fixed bottom-32 left-4 z-40 max-w-[calc(100vw-2rem)] sm:bottom-6 sm:left-6 ${
               panel === "settings"
                 ? "w-[min(42rem,calc(100vw-2rem))]"
                 : "w-[min(28rem,calc(100vw-2rem))]"

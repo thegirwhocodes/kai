@@ -11,20 +11,22 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://heykai.vercel.app"),
   title: {
-    default: "Kai Focus — AI focus coach for adaptive Pomodoro sessions",
+    default: "Kai Focus — a calm Pomodoro focus room with lock-in sessions",
     template: "%s | Kai Focus",
   },
   description:
-    "Kai Focus is an adaptive AI Pomodoro coach for calendar-aware planning, Gmail signals, voice commands, Spotify focus music, and productivity trends.",
+    "Commit to a stretch of time and Kai plans the focus blocks and breaks around it. Layered focus sounds, tasks, voice control, and measured stats. Free, no account.",
   applicationName: "Kai Focus",
   keywords: [
     "Kai",
     "Kai Focus",
-    "AI focus coach",
-    "adaptive Pomodoro",
-    "productivity trends",
-    "calendar planner",
-    "Spotify focus music",
+    "pomodoro timer",
+    "focus timer",
+    "study timer",
+    "lock in session",
+    "focus sounds",
+    "brown noise",
+    "adaptive pomodoro",
   ],
   authors: [{ name: "Kai Focus" }],
   creator: "Kai Focus",
@@ -35,17 +37,17 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: "/",
-    title: "Kai Focus — AI focus coach for adaptive Pomodoro sessions",
+    title: "Kai Focus — a calm Pomodoro focus room with lock-in sessions",
     description:
-      "Plan your next focus block around your calendar, priorities, inbox signals, energy, and Spotify music.",
+      "Commit to two hours and Kai lays out the focus blocks and breaks, then runs them while you work.",
     siteName: "Kai Focus",
     images: [{ url: "/opengraph-image", width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Kai Focus — AI focus coach for adaptive Pomodoro sessions",
+    title: "Kai Focus — a calm Pomodoro focus room with lock-in sessions",
     description:
-      "A calm focus room with adaptive timing, calendar planning, voice, Spotify, and productivity trends.",
+      "A calm focus room: lock-in sessions, your own timings, layered focus sounds, and stats you can trust.",
     images: ["/opengraph-image"],
   },
   robots: {

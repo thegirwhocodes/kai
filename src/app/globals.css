@@ -168,6 +168,13 @@ body {
   background: rgba(255, 255, 255, 0.16);
 }
 
+/* Range sliders (sound levels) in Kai's palette, not browser blue. */
+input[type="range"] {
+  accent-color: #fb7a8e;
+  height: 1.1rem;
+  cursor: pointer;
+}
+
 /* Tabular clean numerals for the big timer. */
 .clock-num {
   font-variant-numeric: tabular-nums;

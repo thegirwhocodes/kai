@@ -84,7 +84,7 @@ export function decideFocusBlock(
     return {
       kind: "focus",
       plannedSec: settings.baselineFocusSec,
-      rationale: `Let's do a clean ${minutesText(mins)} focus block.`,
+      rationale: `Let's do a clean ${mins}-minute focus block.`,
     };
   }
 
@@ -148,7 +148,7 @@ export function decideFocusBlock(
   const rationale =
     reasons.length > 0
       ? `Let's do ${minutesText(mins)}: ${reasons.join(", and ")}.`
-      : `Let's do a clean ${minutesText(mins)} focus block.`;
+      : `Let's do a clean ${mins}-minute focus block.`;
 
   return { kind: "focus", plannedSec: sec, rationale };
 }

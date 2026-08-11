@@ -251,7 +251,9 @@ export const DEFAULT_SETTINGS: AgentSettings = {
   autoStartDelaySec: 5,
   soundAlerts: true,
   voiceAlerts: true,
-  wakeListening: true,
+  // Off by default: a first-time visitor shouldn't meet a microphone prompt
+  // before they've even started a timer. Opt in from Customize.
+  wakeListening: false,
   background: DEFAULT_BACKGROUND,
   ambientLevels: {},
   showClock: true,
