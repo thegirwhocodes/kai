@@ -16,7 +16,7 @@ import { WakeListener } from "@/components/WakeListener";
 import { Welcome } from "@/components/Welcome";
 import { unlockAudio } from "@/lib/alerts";
 import { buildStateSnapshot } from "@/lib/agent/executeTool";
-import { toCss } from "@/lib/backgrounds";
+import { animationFor, isImageValue, scrimFor, toCss } from "@/lib/backgrounds";
 import { KIND_LABEL, mmss } from "@/lib/format";
 import { useAgentStore } from "@/lib/store";
 import type { KaiRecommendation } from "@/lib/types";
@@ -148,8 +148,8 @@ function KaiApp() {
 
   return (
     <main className="relative min-h-screen overflow-hidden">
-      <div className="scene-bg" style={{ background: toCss(settings.background) }} />
-      <div className="scene-veil" />
+      <Scene value={settings.background} />
+      <div className="scene-veil" data-scrim={scrimFor(settings.background)} />
 
       {/* Logo */}
       <div className="fixed left-6 top-6 z-20 flex items-center gap-2.5">
@@ -323,6 +323,29 @@ function KaiApp() {
       <Dock active={panel} onSelect={setPanel} onFullscreen={fullscreen} />
       <Welcome />
     </main>
+  );
+}
+
+/**
+ * The background itself. A photo renders as two layers (sharp centre, blurred
+ * fill); anything else is a single CSS background, animated when the theme
+ * asks for it.
+ */
+function Scene({ value }: { value: string }) {
+  if (isImageValue(value)) {
+    const layer = { backgroundImage: `url("${value}")` };
+    return (
+      <>
+        <div className="scene-photo-blur" style={layer} />
+        <div className="scene-photo" style={layer} />
+      </>
+    );
+  }
+  return (
+    <div
+      className={`scene-bg ${animationFor(value) ?? ""}`}
+      style={{ background: toCss(value) }}
+    />
   );
 }
 

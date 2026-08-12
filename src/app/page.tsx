@@ -65,7 +65,7 @@ export default function LandingPage() {
       <section className="relative isolate overflow-hidden">
         <div className="absolute inset-0 -z-20">
           <Image
-            src="/backgrounds/library-lamps.jpg"
+            src="/backgrounds/library-lamps.webp"
             alt=""
             fill
             preload

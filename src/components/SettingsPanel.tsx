@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { BACKGROUNDS } from "@/lib/backgrounds";
+import { ThemePicker } from "@/components/ThemePicker";
 import { notificationsEnabled, unlockAudio } from "@/lib/alerts";
 import { getOwnerToken, setOwnerToken } from "@/lib/ownerClient";
 import { useAgentStore } from "@/lib/store";
@@ -10,7 +10,6 @@ import { SHORTCUTS } from "@/lib/useKeyboard";
 export function SettingsPanel() {
   const settings = useAgentStore((s) => s.settings);
   const update = useAgentStore((s) => s.updateSettings);
-  const [url, setUrl] = useState("");
   const [notifOn, setNotifOn] = useState(
     typeof window !== "undefined" && notificationsEnabled(),
   );
@@ -50,72 +49,17 @@ export function SettingsPanel() {
         </label>
       </div>
 
-      <div className="mb-4">
+      <div className="mb-3">
         <h2 className="text-sm font-medium" style={{ color: "var(--muted)" }}>
-          Ambient worlds
+          Themes
         </h2>
         <p className="mt-1 text-xs leading-5" style={{ color: "var(--muted)" }}>
-          Calm study rooms, soft light, and legible focus gradients.
+          Cozy rooms, sunsets, skies, study scenes, and animated gradients.
         </p>
       </div>
-
-      {/* Background picker */}
-      <div className="mb-4 grid gap-3 sm:grid-cols-2">
-        {BACKGROUNDS.map((b) => (
-          <button
-            key={b.id}
-            onClick={() => update({ background: b.value })}
-            className="group relative overflow-hidden rounded-lg border bg-white/[0.035] p-2 text-left transition hover:bg-white/[0.07]"
-            style={{
-              borderColor:
-                settings.background === b.value
-                  ? "var(--focus)"
-                  : "rgba(255,255,255,0.15)",
-            }}
-            title={b.name}
-            aria-label={b.name}
-          >
-            <span
-              className="block aspect-video rounded-md bg-cover bg-center shadow-[inset_0_-30px_60px_rgba(0,0,0,0.24)]"
-              style={{
-                background:
-                  b.kind === "gradient"
-                    ? b.value
-                    : `linear-gradient(rgba(0,0,0,0.04),rgba(0,0,0,0.18)), url("${b.value}") center / cover no-repeat`,
-              }}
-            />
-            <span className="mt-2 flex items-center justify-between gap-2">
-              <span className="truncate text-sm font-medium">{b.name}</span>
-              {settings.background === b.value && (
-                <span className="rounded-full bg-white/12 px-2 py-0.5 text-[10px] uppercase tracking-[0.12em] text-white/80">
-                  active
-                </span>
-              )}
-            </span>
-          </button>
-        ))}
+      <div className="mb-5">
+        <ThemePicker />
       </div>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (url.trim()) update({ background: url.trim() });
-          setUrl("");
-        }}
-        className="mb-4 flex gap-2"
-      >
-        <input
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="Paste an image URL"
-          className="flex-1 rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs outline-none transition focus:border-white/40"
-        />
-        <button
-          type="submit"
-          className="rounded-lg border border-white/15 px-2.5 py-1.5 text-xs transition hover:bg-white/10"
-        >
-          Set
-        </button>
-      </form>
 
       <p className="mb-2 text-xs" style={{ color: "var(--muted)" }}>
         Timing

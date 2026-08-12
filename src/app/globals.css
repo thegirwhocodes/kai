@@ -53,20 +53,130 @@ body {
   opacity: 0.72;
   pointer-events: none;
 }
-/* Legibility veil over busy photo backgrounds. */
+
+/* --- Photo scenes -------------------------------------------------------
+   Sources are portrait, the screen usually isn't. `.scene-photo` shows the
+   image sharp at its own aspect ratio; `.scene-photo-blur` fills the rest of
+   the screen with a scaled, blurred copy so the edges read as depth of field
+   rather than as letterboxing. On a portrait screen the photo just covers. */
+.scene-photo-blur {
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  background-size: cover;
+  background-position: center;
+  filter: blur(46px) saturate(125%) brightness(0.85);
+  transform: scale(1.18);
+  pointer-events: none;
+}
+.scene-photo {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background-size: auto 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+}
+@media (orientation: portrait) {
+  .scene-photo {
+    background-size: cover;
+  }
+  .scene-photo-blur {
+    display: none;
+  }
+}
+
+/* Animated ambient worlds — slow enough to never pull focus. */
+.anim-drift {
+  background-size: 160% 160% !important;
+  animation: kai-drift 42s ease-in-out infinite alternate;
+}
+.anim-sway {
+  background-size: 145% 145% !important;
+  animation: kai-sway 56s ease-in-out infinite alternate;
+}
+.anim-glow {
+  animation: kai-glow 14s ease-in-out infinite alternate;
+}
+@keyframes kai-drift {
+  from {
+    background-position: 0% 30%;
+  }
+  to {
+    background-position: 100% 70%;
+  }
+}
+@keyframes kai-sway {
+  from {
+    background-position: 20% 80%;
+  }
+  to {
+    background-position: 80% 20%;
+  }
+}
+@keyframes kai-glow {
+  from {
+    filter: brightness(0.94);
+  }
+  to {
+    filter: brightness(1.09);
+  }
+}
+
+/* Legibility veil. Strength is set per theme from the measured brightness of
+   the image's top third, which is where the clock sits.
+   The heavy lifting is a soft ellipse behind the centre column rather than a
+   flat wash over the whole photo — the text gets its contrast while the edges
+   of the scene keep their colour. */
 .scene-veil {
   position: fixed;
   inset: 0;
   z-index: -1;
+  pointer-events: none;
   background:
-    radial-gradient(circle at 50% 44%, rgba(18, 15, 31, 0.1), rgba(18, 15, 31, 0.45) 76%),
+    radial-gradient(
+      58% 46% at 50% 40%,
+      rgba(10, 8, 18, 0.5) 0%,
+      rgba(10, 8, 18, 0.26) 55%,
+      rgba(10, 8, 18, 0) 100%
+    ),
     linear-gradient(
       180deg,
-      rgba(5, 6, 12, 0.34) 0%,
-      rgba(5, 6, 12, 0.14) 30%,
-      rgba(5, 6, 12, 0.5) 100%
+      rgba(5, 6, 12, 0.3) 0%,
+      rgba(5, 6, 12, 0.1) 32%,
+      rgba(5, 6, 12, 0.42) 100%
     );
-  pointer-events: none;
+}
+.scene-veil[data-scrim="medium"] {
+  background:
+    radial-gradient(
+      62% 50% at 50% 40%,
+      rgba(9, 7, 16, 0.62) 0%,
+      rgba(9, 7, 16, 0.34) 58%,
+      rgba(9, 7, 16, 0) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(5, 6, 12, 0.38) 0%,
+      rgba(5, 6, 12, 0.16) 32%,
+      rgba(5, 6, 12, 0.48) 100%
+    );
+}
+.scene-veil[data-scrim="strong"] {
+  background:
+    radial-gradient(
+      66% 54% at 50% 40%,
+      rgba(8, 6, 14, 0.72) 0%,
+      rgba(8, 6, 14, 0.42) 58%,
+      rgba(8, 6, 14, 0.06) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(4, 5, 10, 0.44) 0%,
+      rgba(4, 5, 10, 0.2) 32%,
+      rgba(4, 5, 10, 0.54) 100%
+    );
 }
 
 .public-shell {
