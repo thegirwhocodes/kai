@@ -9,10 +9,11 @@ import { useAgentStore } from "./store";
  */
 export function useTicker() {
   const status = useAgentStore((s) => s.activeBlock?.status);
+  const stopwatchRunning = useAgentStore((s) => s.stopwatch?.running ?? false);
   const tick = useAgentStore((s) => s.tick);
 
   useEffect(() => {
-    if (status !== "running") return;
+    if (status !== "running" && !stopwatchRunning) return;
     let last = Date.now();
     const id = setInterval(() => {
       const now = Date.now();
@@ -21,5 +22,5 @@ export function useTicker() {
       tick(delta);
     }, 250);
     return () => clearInterval(id);
-  }, [status, tick]);
+  }, [status, stopwatchRunning, tick]);
 }

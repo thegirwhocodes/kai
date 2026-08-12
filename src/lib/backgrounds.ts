@@ -213,8 +213,42 @@ export function resolveTheme(value: string): Theme | undefined {
   return BY_VALUE.get(value);
 }
 
+/** Video themes are stored as `youtube:<id>` so one setting covers every kind. */
+export const YOUTUBE_PREFIX = "youtube:";
+
+export function isVideoValue(value: string): boolean {
+  return value.startsWith(YOUTUBE_PREFIX);
+}
+
+export function youtubeIdOf(value: string): string | null {
+  return isVideoValue(value) ? value.slice(YOUTUBE_PREFIX.length) : null;
+}
+
+/**
+ * Pull a video id out of whatever the user pasted — a watch link, a share
+ * link, an embed link, or the bare id.
+ */
+export function parseYouTube(input: string): string | null {
+  const text = input.trim();
+  if (!text) return null;
+  if (/^[\w-]{11}$/.test(text)) return text;
+  const patterns = [
+    /[?&]v=([\w-]{11})/,
+    /youtu\.be\/([\w-]{11})/,
+    /youtube\.com\/embed\/([\w-]{11})/,
+    /youtube\.com\/shorts\/([\w-]{11})/,
+    /youtube\.com\/live\/([\w-]{11})/,
+  ];
+  for (const re of patterns) {
+    const m = text.match(re);
+    if (m) return m[1];
+  }
+  return null;
+}
+
 /** True when the value should render as a photo rather than a CSS background. */
 export function isImageValue(value: string): boolean {
+  if (isVideoValue(value)) return false;
   return (
     value.startsWith("/backgrounds/") ||
     value.startsWith("http://") ||
@@ -223,9 +257,11 @@ export function isImageValue(value: string): boolean {
   );
 }
 
-/** Scrim for a value — a user's own upload gets the safe middle setting. */
+/** Scrim for a value — anything we didn't measure gets the safe middle setting. */
 export function scrimFor(value: string): ScrimLevel {
-  return resolveTheme(value)?.scrim ?? (isImageValue(value) ? "medium" : "soft");
+  const known = resolveTheme(value);
+  if (known) return known.scrim;
+  return isImageValue(value) || isVideoValue(value) ? "medium" : "soft";
 }
 
 /** Keyframe class for animated themes, or undefined. */

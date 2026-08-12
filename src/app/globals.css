@@ -87,6 +87,28 @@ body {
   }
 }
 
+/* Video scene. The iframe is sized to the larger of "fill the width" and
+   "fill the height" at 16:9, then centred, so it covers the viewport at any
+   shape without letterboxing — object-fit has no effect on an iframe. */
+.scene-video {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  pointer-events: none;
+  background: #15101f;
+}
+.scene-video iframe {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(100vw, 177.78vh);
+  height: max(56.25vw, 100vh);
+  transform: translate(-50%, -50%);
+  border: 0;
+  pointer-events: none;
+}
+
 /* Animated ambient worlds — slow enough to never pull focus. */
 .anim-drift {
   background-size: 160% 160% !important;

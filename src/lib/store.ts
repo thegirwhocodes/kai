@@ -16,6 +16,7 @@ import {
   type LockIn,
   type LockInProgress,
   type Session,
+  type Stopwatch,
   type Task,
   type TaskPriority,
   DEFAULT_SETTINGS,
@@ -61,6 +62,8 @@ interface StoreState {
   latestRecommendation: KaiRecommendation | null;
   /** Active lock-in commitment, or null when running open-ended. */
   lockIn: LockIn | null;
+  /** Count-up timer, when the user is in stopwatch mode. */
+  stopwatch: Stopwatch | null;
 
   // --- lifecycle ---
   ensureSession: () => Session;
@@ -73,6 +76,14 @@ interface StoreState {
   ) => Block;
   startRecommendedFocus: () => Block | null;
   startBreak: () => Block;
+  /** A one-off focus block of an exact length (countdown mode). */
+  startCountdown: (minutes: number, taskId?: string) => Block;
+  /** Begin counting up. Replaces any previous stopwatch run. */
+  startStopwatch: (taskId?: string) => void;
+  /** Pause or resume the count-up. */
+  toggleStopwatch: () => void;
+  /** Stop and, if it ran long enough to mean anything, log it as focus time. */
+  stopStopwatch: () => Block | null;
   /** Commit to a total lock-in budget and start its first block. */
   startLockIn: (totalMinutes: number, taskId?: string) => Block | null;
   /** Advance to the next block in the active lock-in, or finish it. */
@@ -152,6 +163,7 @@ export const useAgentStore = create<StoreState>()(
       lastCompletedFocusId: null,
       latestRecommendation: null,
       lockIn: null,
+      stopwatch: null,
 
       ensureSession: () => {
         const existing = get().session;
@@ -264,6 +276,77 @@ export const useAgentStore = create<StoreState>()(
           remainingSec: block.plannedSec,
           lastDecisionRationale: decision.rationale,
         });
+        return block;
+      },
+
+      startCountdown: (minutes, taskId) => {
+        const session = get().ensureSession();
+        const plannedSec = Math.max(60, Math.round(minutes * 60));
+        const block: Block = {
+          id: uid(),
+          kind: "focus",
+          plannedSec,
+          elapsedSec: 0,
+          status: "running",
+          taskId,
+          startedAt: Date.now(),
+          interruptions: 0,
+          standalone: true,
+        };
+        const blocks = [...session.blocks, block];
+        set({
+          session: { ...session, blocks, currentBlockIndex: blocks.length - 1 },
+          activeBlock: block,
+          remainingSec: plannedSec,
+          lastDecisionRationale: `${Math.round(plannedSec / 60)} minutes on the clock.`,
+        });
+        return block;
+      },
+
+      startStopwatch: (taskId) => {
+        get().ensureSession();
+        set({ stopwatch: { elapsedSec: 0, running: true, taskId } });
+      },
+
+      toggleStopwatch: () => {
+        const sw = get().stopwatch;
+        if (!sw) return;
+        set({ stopwatch: { ...sw, running: !sw.running } });
+      },
+
+      stopStopwatch: () => {
+        const sw = get().stopwatch;
+        if (!sw) return null;
+        set({ stopwatch: null });
+        // Under a minute isn't a focus block, it's a misclick — don't pollute
+        // the stats with it.
+        const elapsed = Math.round(sw.elapsedSec);
+        if (elapsed < 60) return null;
+        const session = get().ensureSession();
+        const block: Block = {
+          id: uid(),
+          kind: "focus",
+          plannedSec: elapsed,
+          elapsedSec: elapsed,
+          status: "completed",
+          taskId: sw.taskId,
+          startedAt: Date.now() - elapsed * 1000,
+          endedAt: Date.now(),
+          interruptions: 0,
+          standalone: true,
+        };
+        const blocks = [...session.blocks, block];
+        set({
+          session: { ...session, blocks, currentBlockIndex: blocks.length - 1 },
+          lastCompletedFocusId: block.id,
+        });
+        if (sw.taskId) {
+          set((s) => ({
+            tasks: s.tasks.map((t) =>
+              t.id === sw.taskId ? { ...t, spentBlocks: t.spentBlocks + 1 } : t,
+            ),
+          }));
+        }
         return block;
       },
 
@@ -392,6 +475,10 @@ export const useAgentStore = create<StoreState>()(
       },
 
       tick: (deltaSec) => {
+        const sw = get().stopwatch;
+        if (sw?.running) {
+          set({ stopwatch: { ...sw, elapsedSec: sw.elapsedSec + deltaSec } });
+        }
         const b = get().activeBlock;
         if (!b || b.status !== "running") return;
         const remaining = Math.max(0, get().remainingSec - deltaSec);

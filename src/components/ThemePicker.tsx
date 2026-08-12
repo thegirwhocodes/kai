@@ -12,6 +12,8 @@ import {
   CATEGORY_LABELS,
   CATEGORY_ORDER,
   THEMES,
+  YOUTUBE_PREFIX,
+  parseYouTube,
   type ThemeCategory,
 } from "@/lib/backgrounds";
 import { useAgentStore } from "@/lib/store";
@@ -24,6 +26,7 @@ export function ThemePicker() {
 
   const [category, setCategory] = useState<ThemeCategory>("cozy");
   const [url, setUrl] = useState("");
+  const [video, setVideo] = useState("");
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -164,6 +167,36 @@ export function ThemePicker() {
             Set
           </button>
         </form>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            setError(null);
+            const id = parseYouTube(video);
+            if (!id) {
+              setError("That doesn't look like a YouTube link.");
+              return;
+            }
+            update({ background: `${YOUTUBE_PREFIX}${id}` });
+            setVideo("");
+          }}
+          className="mt-2 flex gap-2"
+        >
+          <input
+            value={video}
+            onChange={(e) => setVideo(e.target.value)}
+            placeholder="…or a YouTube link, for a moving scene"
+            className="flex-1 rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs outline-none transition focus:border-white/40"
+          />
+          <button
+            type="submit"
+            className="rounded-lg border border-white/15 px-2.5 py-1.5 text-xs transition hover:bg-white/10"
+          >
+            Play
+          </button>
+        </form>
+        <p className="mt-1.5 text-[10px] leading-4" style={{ color: "var(--muted)" }}>
+          Video plays muted and looped. Long lofi or ambient videos work best.
+        </p>
         {error && (
           <p className="mt-2 text-[11px]" style={{ color: "var(--focus)" }}>
             {error}

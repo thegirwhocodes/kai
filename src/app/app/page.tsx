@@ -11,15 +11,26 @@ import { MusicPanel } from "@/components/MusicPanel";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { StatsPanel } from "@/components/StatsPanel";
 import { TasksPanel } from "@/components/TasksPanel";
+import {
+  CountdownStarter,
+  ModeSwitch,
+  StopwatchPanel,
+} from "@/components/TimerModes";
 import { VoicePanel } from "@/components/VoicePanel";
 import { WakeListener } from "@/components/WakeListener";
 import { Welcome } from "@/components/Welcome";
 import { unlockAudio } from "@/lib/alerts";
 import { buildStateSnapshot } from "@/lib/agent/executeTool";
-import { animationFor, isImageValue, scrimFor, toCss } from "@/lib/backgrounds";
+import {
+  animationFor,
+  isImageValue,
+  scrimFor,
+  toCss,
+  youtubeIdOf,
+} from "@/lib/backgrounds";
 import { KIND_LABEL, mmss } from "@/lib/format";
 import { useAgentStore } from "@/lib/store";
-import type { KaiRecommendation } from "@/lib/types";
+import type { KaiRecommendation, TimerMode } from "@/lib/types";
 import { useAutopilot } from "@/lib/useAutopilot";
 import { useExternalCommands } from "@/lib/useExternalCommands";
 import { useKeyboard } from "@/lib/useKeyboard";
@@ -67,6 +78,8 @@ function KaiApp() {
   const startRecommendedFocus = useAgentStore((s) => s.startRecommendedFocus);
 
   const [panel, setPanel] = useState<Panel>(null);
+  const [mode, setMode] = useState<TimerMode>("pomodoro");
+  const stopwatch = useAgentStore((s) => s.stopwatch);
   const [selectedTask, setSelectedTask] = useState<string | undefined>();
   const [planning, setPlanning] = useState(false);
   const [planError, setPlanError] = useState<string | null>(null);
@@ -103,8 +116,12 @@ function KaiApp() {
   const isPaused = active?.status === "paused";
   const justFinished =
     active?.status === "completed" || active?.status === "abandoned";
-  const autoAdvancing = active?.status === "completed" && settings.autoStart;
+  // A standalone countdown ends where it ends — nothing is queued behind it,
+  // so don't promise a break that isn't coming.
+  const autoAdvancing =
+    active?.status === "completed" && settings.autoStart && !active.standalone;
   const idle = !active || justFinished;
+  const stopwatchActive = mode === "stopwatch" && stopwatch !== null;
 
   const beginFocus = () => {
     unlockAudio();
@@ -173,8 +190,10 @@ function KaiApp() {
       >
         {idle ? (
           <>
-            {settings.showClock && <Clock />}
-            {settings.showGreeting && (
+            {/* In stopwatch mode the running count is the headline number, so
+                the wall clock steps aside rather than stacking two of them. */}
+            {settings.showClock && !stopwatchActive && <Clock />}
+            {settings.showGreeting && !stopwatchActive && (
               <p className="mt-5 text-xl font-light sm:text-2xl">
                 {greeting(settings.userName)}
               </p>
@@ -190,9 +209,19 @@ function KaiApp() {
                   </button>
                 </div>
               </>
+            ) : mode !== "pomodoro" ? (
+              <>
+                <ModeSwitch mode={mode} onChange={setMode} />
+                {mode === "countdown" ? (
+                  <CountdownStarter taskId={selectedTask} />
+                ) : (
+                  <StopwatchPanel taskId={selectedTask} />
+                )}
+              </>
             ) : (
               <>
-                <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
+                <ModeSwitch mode={mode} onChange={setMode} />
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                   {latestRecommendation && (
                     <button onClick={beginRecommended} className="btn-primary">
                       Start next
@@ -332,6 +361,26 @@ function KaiApp() {
  * asks for it.
  */
 function Scene({ value }: { value: string }) {
+  const videoId = youtubeIdOf(value);
+  if (videoId) {
+    // Muted + looped so it can autoplay at all, and pointer-events off so the
+    // video never steals a click meant for the timer.
+    const src =
+      `https://www.youtube-nocookie.com/embed/${videoId}` +
+      `?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&rel=0` +
+      `&modestbranding=1&playsinline=1&disablekb=1&iv_load_policy=3`;
+    return (
+      <div className="scene-video">
+        <iframe
+          src={src}
+          title="Background video"
+          allow="autoplay; encrypted-media"
+          referrerPolicy="strict-origin-when-cross-origin"
+          tabIndex={-1}
+        />
+      </div>
+    );
+  }
   if (isImageValue(value)) {
     const layer = { backgroundImage: `url("${value}")` };
     return (

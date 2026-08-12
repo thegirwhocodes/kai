@@ -131,6 +131,23 @@ export interface Block {
   interruptions: number;
   /** If this block belongs to a lock-in commitment, its id. */
   lockInId?: string;
+  /**
+   * A one-off block the user asked for by length (countdown mode, or a
+   * recorded stopwatch run). Autopilot doesn't chain a break onto these — the
+   * user asked for exactly this much time, not a session.
+   */
+  standalone?: boolean;
+}
+
+/** Which timer the room is showing. */
+export type TimerMode = "pomodoro" | "countdown" | "stopwatch";
+
+/** A count-up timer, independent of the block schedule. */
+export interface Stopwatch {
+  elapsedSec: number;
+  running: boolean;
+  /** Task the elapsed time is credited to when it's stopped. */
+  taskId?: string;
 }
 
 /** One entry in a lock-in plan: a focus or break block of a fixed length. */

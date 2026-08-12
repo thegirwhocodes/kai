@@ -53,7 +53,9 @@ export function useAutopilot() {
     if (justCompleted && block) {
       announceEnd(block, settings.soundAlerts, settings.voiceAlerts);
 
-      if (settings.autoStart) {
+      // A countdown is exactly the time the user asked for, so it ends there
+      // instead of rolling into a break.
+      if (settings.autoStart && !block.standalone) {
         clearAdvance();
         const wasFocus = block.kind === "focus";
         advanceTimer.current = setTimeout(() => {
