@@ -34,7 +34,13 @@ Implementation rules:
 - Use 16:9 crops at 2400x1350 so the dashboard and landing hero stay crisp.
 - Keep the first six image presets focused: desk, library, lamp, window, plant, writing surface.
 - Preserve the gradient presets because they are lightweight, legible, and Flocus-adjacent.
-- Do not use copied Pinterest pins as shipped assets; use them only as inspiration.
+- ~~Do not use copied Pinterest pins as shipped assets; use them only as inspiration.~~
+  **Superseded 2026-08-12.** Naomi chose to ship her 19 Pinterest-sourced scenes as
+  assets, having been told the copyright exposure on a product she intends to charge
+  for. Don't re-raise it. Keep new photo themes in the same cozy/sunset/study
+  direction, and note that a takedown request is the expected failure mode — each
+  scene is one file under `public/backgrounds/`, so removing one is a one-line change
+  in `src/lib/backgrounds.ts` plus deleting the asset.
 
 ## New Image Presets
 
