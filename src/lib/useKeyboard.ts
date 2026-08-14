@@ -17,6 +17,7 @@ const PANEL_KEYS: Record<string, Exclude<Panel, null>> = {
   t: "tasks",
   m: "music",
   r: "stats",
+  a: "themes",
   c: "settings",
 };
 
@@ -116,6 +117,7 @@ export const SHORTCUTS: { keys: string; action: string }[] = [
   { keys: "F", action: "Fullscreen" },
   { keys: "T", action: "Tasks" },
   { keys: "M", action: "Focus sounds" },
+  { keys: "A", action: "Themes" },
   { keys: "R", action: "Your focus stats" },
   { keys: "V", action: "Talk to Kai" },
   { keys: "P", action: "Plan next" },

@@ -5,12 +5,14 @@
 //   animated — CSS gradient plus a slow keyframe drift (the "ambient world" feel)
 //   image    — a photo scene shipped as WebP
 //
-// Photo scenes are portrait (they came from phone-wallpaper sources), which is
-// the wrong shape for a desktop screen. Rather than upscale a 736px-wide image
-// across 2560px and get mush, the renderer shows the photo sharp at its own
-// aspect and fills the sides with a blurred, scaled copy of itself — the trick
-// music and video players use for mismatched artwork. On a portrait screen the
-// photo simply covers, because there the shape already matches.
+// Photos come in two shapes, and the difference matters more than anything
+// else here. Landscape scenes are 2560x1600 and simply cover any screen — that
+// is what a full-screen background is supposed to do, and it's what Flocus
+// ships (2160x1350). Portrait scenes came from phone wallpapers at ~736px
+// wide: filling a 2560px screen with one means a 3.5x upscale AND throwing
+// away three quarters of the picture. No CSS setting fixes that, so portrait
+// themes are flagged and the user picks — fill and crop, or show the whole
+// image with a blurred copy of itself filling the leftover width.
 //
 // Each theme carries a scrim level measured from the brightness of its top
 // third, which is where the clock sits. Bright scenes get a heavier veil so the
@@ -32,6 +34,10 @@ export interface Theme {
   kind: "gradient" | "animated" | "image";
   /** CSS background for gradients, or the asset path for images. */
   value: string;
+  /** Small version for the picker grid, so it doesn't load 6MB of photos. */
+  thumb?: string;
+  /** Portrait photo: fills a wide screen only by cropping most of it away. */
+  portrait?: boolean;
   scrim: ScrimLevel;
   /** For animated themes: the CSS class carrying the keyframes. */
   animation?: string;
@@ -59,42 +65,68 @@ const photo = (
   name: string,
   category: ThemeCategory,
   scrim: ScrimLevel,
+  /** Portrait sources came from phone wallpapers and crop hard on a wide screen. */
+  portrait = false,
 ): Theme => ({
   id,
   name,
   category,
   kind: "image",
   value: `/backgrounds/${id}.webp`,
+  thumb: `/backgrounds/thumbs/${id}.webp`,
   scrim,
+  portrait,
 });
 
 export const THEMES: Theme[] = [
-  // ---- Cozy rooms
-  photo("cozy-night-in", "Cozy Night In", "cozy", "soft"),
-  photo("dreamy-night", "Dreamy Night", "cozy", "soft"),
-  photo("city-balcony", "City Balcony", "cozy", "medium"),
-  photo("evening-balcony", "Evening Balcony", "cozy", "medium"),
-  photo("sea-window", "Sea Window", "cozy", "medium"),
-  photo("blossom-window", "Blossom Window", "cozy", "strong"),
-  photo("balcony-morning", "Balcony Morning", "cozy", "strong"),
+  // ---- Cozy rooms (landscape first: these fill any screen)
+  photo("lamplit-room", "Lamplit Room", "cozy", "soft"),
+  photo("morning-bed", "Morning Bed", "cozy", "soft"),
+  photo("pillow-nook", "Pillow Nook", "cozy", "medium"),
+  photo("plant-window", "Plant Window", "cozy", "strong"),
+  photo("cozy-night-in", "Cozy Night In", "cozy", "soft", true),
+  photo("dreamy-night", "Dreamy Night", "cozy", "soft", true),
+  photo("city-balcony", "City Balcony", "cozy", "medium", true),
+  photo("evening-balcony", "Evening Balcony", "cozy", "medium", true),
+  photo("sea-window", "Sea Window", "cozy", "medium", true),
+  photo("blossom-window", "Blossom Window", "cozy", "strong", true),
+  photo("balcony-morning", "Balcony Morning", "cozy", "strong", true),
 
   // ---- Sunsets
-  photo("cave-arch", "Cave Arch", "sunset", "soft"),
-  photo("shore-reading", "Shore Reading", "sunset", "medium"),
-  photo("beach-picnic", "Beach Picnic", "sunset", "medium"),
-  photo("palm-shore", "Palm Shore", "sunset", "medium"),
-  photo("tulip-path", "Tulip Path", "sunset", "strong"),
+  photo("golden-pane", "Golden Pane", "sunset", "soft"),
+  photo("dusk-city", "Dusk City", "sunset", "soft"),
+  photo("amber-sea", "Amber Sea", "sunset", "soft"),
+  photo("ocean-windows", "Ocean Windows", "sunset", "soft"),
+  photo("city-sundown", "City Sundown", "sunset", "medium"),
+  photo("cave-arch", "Cave Arch", "sunset", "soft", true),
+  photo("shore-reading", "Shore Reading", "sunset", "medium", true),
+  photo("beach-picnic", "Beach Picnic", "sunset", "medium", true),
+  photo("palm-shore", "Palm Shore", "sunset", "medium", true),
+  photo("tulip-path", "Tulip Path", "sunset", "strong", true),
 
   // ---- Skies
-  photo("lamp-and-roses", "Lamp & Roses", "sky", "soft"),
-  photo("pastel-sky", "Pastel Sky", "sky", "medium"),
-  photo("swan-lake", "Swan Lake", "sky", "medium"),
-  photo("pink-promenade", "Pink Promenade", "sky", "strong"),
+  photo("blush-horizon", "Blush Horizon", "sky", "medium"),
+  photo("banded-dusk", "Banded Dusk", "sky", "medium"),
+  photo("moon-clouds", "Moon Clouds", "sky", "strong"),
+  photo("peach-clouds", "Peach Clouds", "sky", "strong"),
+  photo("cotton-sky", "Cotton Sky", "sky", "strong"),
+  photo("violet-clouds", "Violet Clouds", "sky", "strong"),
+  photo("lamp-and-roses", "Lamp & Roses", "sky", "soft", true),
+  photo("pastel-sky", "Pastel Sky", "sky", "medium", true),
+  photo("swan-lake", "Swan Lake", "sky", "medium", true),
+  photo("pink-promenade", "Pink Promenade", "sky", "strong", true),
 
   // ---- Study
-  photo("green-park", "Green Park", "study", "soft"),
-  photo("moonrise-desk", "Moonrise Desk", "study", "soft"),
-  photo("study-desk", "Study Desk", "study", "strong"),
+  photo("lamp-glow", "Lamp Glow", "study", "soft"),
+  photo("night-study", "Night Study", "study", "soft"),
+  photo("library-desk", "Library Desk", "study", "soft"),
+  photo("fireside-study", "Fireside Study", "study", "soft"),
+  photo("book-table", "Book Table", "study", "soft"),
+  photo("curtain-desk", "Curtain Desk", "study", "medium"),
+  photo("green-view", "Green View", "study", "medium"),
+  photo("green-park", "Green Park", "study", "soft", true),
+  photo("moonrise-desk", "Moonrise Desk", "study", "soft", true),
+  photo("study-desk", "Study Desk", "study", "strong", true),
 
   // ---- Original photo set
   photo("late-night-desk", "Late Desk", "study", "soft"),
@@ -204,7 +236,7 @@ export const THEMES: Theme[] = [
 ];
 
 export const DEFAULT_BACKGROUND =
-  THEMES.find((t) => t.id === "cozy-night-in")?.value ?? THEMES[0].value;
+  THEMES.find((t) => t.id === "night-study")?.value ?? THEMES[0].value;
 
 const BY_VALUE = new Map(THEMES.map((t) => [t.value, t]));
 
@@ -262,6 +294,16 @@ export function scrimFor(value: string): ScrimLevel {
   const known = resolveTheme(value);
   if (known) return known.scrim;
   return isImageValue(value) || isVideoValue(value) ? "medium" : "soft";
+}
+
+/** Small picker image for a value, falling back to the full-size one. */
+export function thumbFor(value: string): string {
+  return resolveTheme(value)?.thumb ?? value;
+}
+
+/** True when this photo can only fill a wide screen by cropping most of it. */
+export function isPortraitTheme(value: string): boolean {
+  return resolveTheme(value)?.portrait === true;
 }
 
 /** Keyframe class for animated themes, or undefined. */

@@ -245,6 +245,14 @@ export interface AgentSettings {
   background: string; // CSS gradient preset, or an image URL
   /** Which ambient textures are playing, and at what level (0–1). */
   ambientLevels: Record<string, number>;
+  /**
+   * How a photo meets the screen. "fill" covers every pixel and crops what
+   * doesn't fit; "fit" shows the whole image sharp with a blurred copy of
+   * itself filling the leftover width. Fill is the default because that's what
+   * a full-screen background is expected to do — but the scenes are portrait,
+   * so fill crops hard and upscales on a wide monitor.
+   */
+  backgroundFit: "fill" | "fit";
   // Widgets the user can hide to strip the room back to just the timer.
   showClock: boolean;
   showQuote: boolean;
@@ -273,6 +281,7 @@ export const DEFAULT_SETTINGS: AgentSettings = {
   wakeListening: false,
   background: DEFAULT_BACKGROUND,
   ambientLevels: {},
+  backgroundFit: "fill",
   showClock: true,
   showQuote: true,
   showGreeting: true,

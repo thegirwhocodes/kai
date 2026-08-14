@@ -99,6 +99,29 @@ describe("computeStats", () => {
     expect(s.weekBlocks).toBe(0);
     expect(s.allTimeBlocks).toBe(1);
   });
+
+  it("builds a 30-day window that reaches back further than the week", () => {
+    const s = computeStats(
+      [
+        block({ startedAt: NOW }),
+        block({ startedAt: NOW - 20 * DAY }),
+        block({ startedAt: NOW - 45 * DAY }), // outside the month
+      ],
+      NOW,
+    );
+    expect(s.month).toHaveLength(30);
+    expect(s.month.at(-1)?.dayStart).toBe(startOfDay(NOW));
+    expect(s.monthBlocks).toBe(2);
+    expect(s.weekBlocks).toBe(1);
+    expect(s.monthFocusMin).toBe(50);
+  });
+
+  it("keeps the week window as the last 7 entries of the month window", () => {
+    const s = computeStats([block({ startedAt: NOW })], NOW);
+    expect(s.month.slice(-7).map((d) => d.dayStart)).toEqual(
+      s.week.map((d) => d.dayStart),
+    );
+  });
 });
 
 describe("day streak", () => {

@@ -11,6 +11,7 @@ import { MusicPanel } from "@/components/MusicPanel";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { StatsPanel } from "@/components/StatsPanel";
 import { TasksPanel } from "@/components/TasksPanel";
+import { ThemesPanel } from "@/components/ThemesPanel";
 import {
   CountdownStarter,
   ModeSwitch,
@@ -24,6 +25,7 @@ import { buildStateSnapshot } from "@/lib/agent/executeTool";
 import {
   animationFor,
   isImageValue,
+  isPortraitTheme,
   scrimFor,
   toCss,
   youtubeIdOf,
@@ -165,7 +167,7 @@ function KaiApp() {
 
   return (
     <main className="relative min-h-screen overflow-hidden">
-      <Scene value={settings.background} />
+      <Scene value={settings.background} fit={settings.backgroundFit} />
       <div className="scene-veil" data-scrim={scrimFor(settings.background)} />
 
       {/* Logo */}
@@ -344,6 +346,7 @@ function KaiApp() {
               <TasksPanel selectedTask={selectedTask} setSelectedTask={setSelectedTask} />
             )}
             {panel === "stats" && <StatsPanel />}
+            {panel === "themes" && <ThemesPanel />}
             {panel === "settings" && <SettingsPanel />}
           </div>
         </>
@@ -360,7 +363,7 @@ function KaiApp() {
  * fill); anything else is a single CSS background, animated when the theme
  * asks for it.
  */
-function Scene({ value }: { value: string }) {
+function Scene({ value, fit }: { value: string; fit: "fill" | "fit" }) {
   const videoId = youtubeIdOf(value);
   if (videoId) {
     // Muted + looped so it can autoplay at all, and pointer-events off so the
@@ -383,10 +386,16 @@ function Scene({ value }: { value: string }) {
   }
   if (isImageValue(value)) {
     const layer = { backgroundImage: `url("${value}")` };
+    // A landscape scene covers any screen with no meaningful loss, so the
+    // fit choice only applies to the portrait ones, where it's a real
+    // trade-off between cropping the picture and blurring the margins.
+    const effectiveFit = isPortraitTheme(value) ? fit : "fill";
     return (
       <>
-        <div className="scene-photo-blur" style={layer} />
-        <div className="scene-photo" style={layer} />
+        {effectiveFit === "fit" && (
+          <div className="scene-photo-blur" style={layer} />
+        )}
+        <div className="scene-photo" data-fit={effectiveFit} style={layer} />
       </>
     );
   }

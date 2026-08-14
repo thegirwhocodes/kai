@@ -4,7 +4,7 @@
 // browser — no estimates, no filler. When there isn't enough data for a claim
 // (see "best hour"), the claim simply isn't shown.
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { bestHour, computeStats, formatMinutes } from "@/lib/stats";
 import { useAgentStore } from "@/lib/store";
 
@@ -19,7 +19,9 @@ export function StatsPanel() {
   const stats = useMemo(() => computeStats(blocks), [blocks]);
   const peak = useMemo(() => bestHour(blocks), [blocks]);
 
-  const peakMax = Math.max(...stats.week.map((d) => d.focusMin), 1);
+  const [range, setRange] = useState<"week" | "month">("week");
+  const series = range === "week" ? stats.week : stats.month;
+  const peakMax = Math.max(...series.map((d) => d.focusMin), 1);
 
   return (
     <div
@@ -47,14 +49,34 @@ export function StatsPanel() {
             </span>
           </div>
 
-          {/* Last 7 days */}
+          {/* Trend, over the window you pick */}
           <div className="mt-5">
-            <p className="text-xs" style={{ color: "var(--muted)" }}>
-              Last 7 days
-            </p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs" style={{ color: "var(--muted)" }}>
+                Last {range === "week" ? "7" : "30"} days
+              </p>
+              <div className="flex gap-1">
+                {(["week", "month"] as const).map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setRange(r)}
+                    className="rounded-full border px-2.5 py-0.5 text-[11px] transition"
+                    style={{
+                      borderColor:
+                        range === r ? "var(--focus)" : "rgba(255,255,255,0.15)",
+                      background:
+                        range === r ? "rgba(251,122,142,0.15)" : "transparent",
+                    }}
+                  >
+                    {r === "week" ? "Week" : "Month"}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="mt-2 flex h-24 items-end gap-1.5">
-              {stats.week.map((day, i) => {
-                const isToday = i === stats.week.length - 1;
+              {series.map((day, i) => {
+                const isToday = i === series.length - 1;
                 return (
                   <div
                     key={day.dayStart}
@@ -74,14 +96,16 @@ export function StatsPanel() {
                         }}
                       />
                     </span>
-                    <span
-                      className="text-[10px]"
-                      style={{
-                        color: isToday ? "var(--foreground)" : "var(--muted)",
-                      }}
-                    >
-                      {day.label[0]}
-                    </span>
+                    {range === "week" && (
+                      <span
+                        className="text-[10px]"
+                        style={{
+                          color: isToday ? "var(--foreground)" : "var(--muted)",
+                        }}
+                      >
+                        {day.label[0]}
+                      </span>
+                    )}
                   </div>
                 );
               })}
@@ -89,7 +113,12 @@ export function StatsPanel() {
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-2">
-            <Stat label="This week" value={formatMinutes(stats.weekFocusMin)} />
+            <Stat
+              label={range === "week" ? "This week" : "This month"}
+              value={formatMinutes(
+                range === "week" ? stats.weekFocusMin : stats.monthFocusMin,
+              )}
+            />
             <Stat
               label="Day streak"
               value={`${stats.dayStreak} day${stats.dayStreak === 1 ? "" : "s"}`}

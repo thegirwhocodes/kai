@@ -6,6 +6,7 @@ export type Panel =
   | "tasks"
   | "music"
   | "stats"
+  | "themes"
   | "settings"
   | null;
 
@@ -29,6 +30,10 @@ export function Dock({
     { id: "tasks", icon: "✓", label: "Tasks", key: "T" },
     { id: "music", icon: "♫", label: "Focus sounds", key: "M" },
     { id: "stats", icon: "▤", label: "Your focus", key: "R" },
+    // Themes get their own button rather than living inside Customize —
+    // it's the thing people reach for most, and the whole library was
+    // invisible when it was two clicks deep.
+    { id: "themes", icon: "◐", label: "Themes", key: "A" },
     { id: "settings", icon: "✦", label: "Customize", key: "C" },
   ];
   return (

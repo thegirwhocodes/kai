@@ -73,10 +73,15 @@ body {
   position: fixed;
   inset: 0;
   z-index: -2;
-  background-size: auto 100%;
+  background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   pointer-events: none;
+}
+/* "Fit" keeps the whole scene visible and hands the leftover width to the
+   blurred layer. Only meaningful when the screen is wider than the photo. */
+.scene-photo[data-fit="fit"] {
+  background-size: auto 100%;
 }
 @media (orientation: portrait) {
   .scene-photo {

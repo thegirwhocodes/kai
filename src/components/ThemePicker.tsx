@@ -97,7 +97,7 @@ export function ThemePicker() {
                 style={{
                   background:
                     t.kind === "image"
-                      ? `linear-gradient(rgba(0,0,0,0.04),rgba(0,0,0,0.18)), url("${t.value}") center / cover no-repeat`
+                      ? `linear-gradient(rgba(0,0,0,0.04),rgba(0,0,0,0.18)), url("${t.thumb ?? t.value}") center / cover no-repeat`
                       : t.value,
                 }}
               />

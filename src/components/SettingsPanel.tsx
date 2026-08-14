@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { ThemePicker } from "@/components/ThemePicker";
 import { notificationsEnabled, unlockAudio } from "@/lib/alerts";
 import { getOwnerToken, setOwnerToken } from "@/lib/ownerClient";
 import { useAgentStore } from "@/lib/store";
@@ -47,18 +46,6 @@ export function SettingsPanel() {
             Comma separated. Kai weights matching tasks first when it plans.
           </span>
         </label>
-      </div>
-
-      <div className="mb-3">
-        <h2 className="text-sm font-medium" style={{ color: "var(--muted)" }}>
-          Themes
-        </h2>
-        <p className="mt-1 text-xs leading-5" style={{ color: "var(--muted)" }}>
-          Cozy rooms, sunsets, skies, study scenes, and animated gradients.
-        </p>
-      </div>
-      <div className="mb-5">
-        <ThemePicker />
       </div>
 
       <p className="mb-2 text-xs" style={{ color: "var(--muted)" }}>
@@ -170,28 +157,6 @@ export function SettingsPanel() {
             Enable notifications
           </button>
         )}
-      </div>
-
-      {/* Strip the room back to just the timer. */}
-      <p className="mb-2 mt-4 text-xs" style={{ color: "var(--muted)" }}>
-        Room
-      </p>
-      <div className="flex flex-col gap-2">
-        <Row
-          label="Show the clock"
-          on={settings.showClock}
-          onClick={() => update({ showClock: !settings.showClock })}
-        />
-        <Row
-          label="Show the greeting"
-          on={settings.showGreeting}
-          onClick={() => update({ showGreeting: !settings.showGreeting })}
-        />
-        <Row
-          label="Show the quote"
-          on={settings.showQuote}
-          onClick={() => update({ showQuote: !settings.showQuote })}
-        />
       </div>
 
       {/* Connected accounts belong to whoever deployed this Kai, so they're

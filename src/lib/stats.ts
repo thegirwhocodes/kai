@@ -20,6 +20,8 @@ export interface FocusStats {
   todayBlocks: number;
   weekFocusMin: number;
   weekBlocks: number;
+  monthFocusMin: number;
+  monthBlocks: number;
   allTimeFocusMin: number;
   allTimeBlocks: number;
   /** Completed / (completed + abandoned) focus blocks, 0–1, or null if none. */
@@ -30,6 +32,8 @@ export interface FocusStats {
   dayStreak: number;
   /** Last 7 days, oldest first, for the bar chart. */
   week: DayStat[];
+  /** Last 30 days, oldest first. */
+  month: DayStat[];
 }
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -65,17 +69,24 @@ export function computeStats(blocks: Block[], now = Date.now()): FocusStats {
   const weekStart = today - 6 * 86_400_000;
   const weekBlocks = completed.filter((b) => dayOf(b) >= weekStart);
 
-  const week: DayStat[] = [];
-  for (let i = 6; i >= 0; i--) {
-    const dayStart = today - i * 86_400_000;
-    const onDay = completed.filter((b) => dayOf(b) === dayStart);
-    week.push({
-      dayStart,
-      label: DAY_LABELS[new Date(dayStart).getDay()],
-      focusMin: Math.round(sum(onDay.map(minutesOf))),
-      blocks: onDay.length,
-    });
-  }
+  const series = (days: number): DayStat[] => {
+    const out: DayStat[] = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const dayStart = today - i * 86_400_000;
+      const onDay = completed.filter((b) => dayOf(b) === dayStart);
+      out.push({
+        dayStart,
+        label: DAY_LABELS[new Date(dayStart).getDay()],
+        focusMin: Math.round(sum(onDay.map(minutesOf))),
+        blocks: onDay.length,
+      });
+    }
+    return out;
+  };
+  const week = series(7);
+  const month = series(30);
+  const monthStart = today - 29 * 86_400_000;
+  const monthBlocks = completed.filter((b) => dayOf(b) >= monthStart);
 
   const rated = focus.filter((b) => b.focusRating != null);
 
@@ -84,6 +95,8 @@ export function computeStats(blocks: Block[], now = Date.now()): FocusStats {
     todayBlocks: todayBlocks.length,
     weekFocusMin: Math.round(sum(weekBlocks.map(minutesOf))),
     weekBlocks: weekBlocks.length,
+    monthFocusMin: Math.round(sum(monthBlocks.map(minutesOf))),
+    monthBlocks: monthBlocks.length,
     allTimeFocusMin: Math.round(sum(completed.map(minutesOf))),
     allTimeBlocks: completed.length,
     completionRate: finished.length ? completed.length / finished.length : null,
@@ -92,6 +105,7 @@ export function computeStats(blocks: Block[], now = Date.now()): FocusStats {
       : null,
     dayStreak: computeDayStreak(completed, today),
     week,
+    month,
   };
 }
 
